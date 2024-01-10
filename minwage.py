@@ -1,4 +1,3 @@
-
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -36,4 +35,5 @@ df = df.set_axis(text_titles, axis=1)
 states = df.iloc[:,0]
 df = df.drop('State or otherjurisdiction', axis=1)
 df = pd.concat([states,df],axis=1)
-print(df)
+
+df.to_csv(r'./minwage_raw.csv',sep=',',index=False)
