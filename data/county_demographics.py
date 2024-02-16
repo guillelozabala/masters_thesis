@@ -266,6 +266,6 @@ for i in range(19):
     F.round(F.col("age{0}_population".format(i))/F.col("population"),5)
     )
 
-### save the beast
+### save the dataset
     
 demo_data.toPandas().to_csv(r'./county_demographics.csv',sep=',',index=False)
