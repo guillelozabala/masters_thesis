@@ -1,0 +1,159 @@
+\documentclass{beamer}
+
+% Packages 
+\usepackage[utf8]{inputenc} % Input encoding 
+\usepackage[T1]{fontenc} % Font encoding
+
+\usepackage{amsmath,amssymb}  % For math
+\usepackage{mathtools,nccmath} % Math extensions
+
+\usepackage{comment} % Comment blocks
+
+\usepackage{xcolor} % Color extensions
+\usepackage{graphicx} % For figures
+\usepackage[many]{tcolorbox} % For boxes
+
+% Get rid of the navigation symbols 
+\beamertemplatenavigationsymbolsempty
+
+% Space between columns
+\setlength{\columnsep}{0cm}
+
+% Space below equations
+\setlength{\belowdisplayskip}{0pt}
+
+% Colorblind friendly palette
+
+%% See https://mirrors.ibiblio.org/CTAN/macros/latex/contrib/beamer-contrib/themes/beamercolorthemeowl/beamercolorthemeowl.pdf
+
+%% Primary -- use two or three
+\definecolor{fmag}{RGB}{255,92,168} % Fancy magenta
+\definecolor{fgre}{RGB}{90,168,0} % Fancy green
+\definecolor{fblu}{RGB}{0,152,233} % Fancy blue
+\definecolor{fyel}{RGB}{242,147,24} % Fancy yellow
+
+%% Secondary -- just in case
+\colorlet{fvio}{fmag!50!fblu} % Fancy violet
+\colorlet{fbro}{fmag!50!fgre} % Fancy brown
+\colorlet{fora}{fmag!50!fyel} % Fancy orange
+\colorlet{fcya}{fgre!50!fblu} % Fancy cyan
+
+% Maths default colors
+\everymath{\color{black}} % \(\)
+\everydisplay{\color{black}} % \[\]
+
+% Buttons colors
+\setbeamercolor{button}{bg=fblu,fg=white}
+
+% Title color
+\setbeamercolor*{title}{fg=fblu}  
+
+% Title font family and weight
+\setbeamerfont{title}{
+    series=\bfseries,
+    parent=structure,
+    family=\rmfamily
+}
+
+% Subtitle color
+\setbeamercolor*{subtitle}{fg=fblu}  
+
+% Subtitle font family and weight
+\setbeamerfont{subtitle}{
+    series=\bfseries,
+    parent=structure,
+    family=\rmfamily
+} 
+
+% Headers color
+\setbeamercolor{frametitle}{fg=fblu}
+
+% Headers font family and weight
+\setbeamerfont{frametitle}{
+    size=\Large,
+    series=\bfseries,
+    parent=structure,
+    family=\rmfamily
+}
+
+% Subheaders color
+\setbeamercolor{framesubtitle}{fg=fblu}
+
+% Subheaders font family and weight
+\setbeamerfont{framesubtitle}{
+    size=\footnotesize,
+    series=\bfseries,
+    parent=structure,
+    family=\rmfamily
+}
+
+% Items color
+\setbeamercolor{itemize item}{fg=black}
+\setbeamercolor{itemize subitem}{fg=fblu}
+
+% Items shape
+\setbeamertemplate{itemize item}[square]
+\setbeamertemplate{itemize subitem}[circle]
+
+% Title page
+\title{The Opioid Crisis}
+\subtitle{State Regulations and Labor Market Outcomes}
+\date{\today}
+\author{Guillermo Martínez Martínez}
+\institute{CEMFI}
+
+% Define item and transition environments 
+% -- cheers to Paul Goldsmith-Pinkham
+
+%% See: https://github.com/paulgp/beamer-tips/blob/master/slides.tex
+
+% Item environment
+\newenvironment{wideitemize}{
+    \itemize\addtolength{\itemsep}{10pt}
+    }{\enditemize}
+
+% Transition environment
+\newenvironment{transitionframe}{
+  \setbeamercolor{background canvas}{bg=fblu}
+  \begin{frame}
+  }{\end{frame}}
+
+% Text boxes
+\newtcolorbox{mybox}{
+    sharpish corners, 
+    colback = white, 
+    colframe = fblu,
+    boxrule = 0.25pt, % very thin, may not render properly (zoom in and out)
+    toprule = 4.5pt,
+    enhanced
+}
+
+\begin{document}
+
+\begin{frame}
+
+    \rmfamily % Font
+    
+    \titlepage 
+
+\end{frame}
+
+\include{introduction}
+
+\include{data}
+
+\include{estimation}
+
+\begin{transitionframe}
+
+    \rmfamily % Font
+    
+    \begin{center}
+    {\Huge \textbf{\textcolor{white}{Thank you!}}}
+    \end{center}
+  
+\end{transitionframe}
+
+\include{appendix}
+
+\end{document}
