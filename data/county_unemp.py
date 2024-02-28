@@ -17,6 +17,29 @@ df["fips"] = df["state_fip"] + df["county_fip"]
 df['series'] = df['series_id'].str.slice(18,20)
 df['month'] = df['period'].str.slice(1,3)
 
+'''
+measure_code	measure_text
+
+03	unemployment rate
+
+04	unemployment
+
+05	employment
+
+06	labor force
+
+07	employment-population ratio
+
+08	labor force participation rate
+
+09	civilian noninstitutional population
+
+https://users.nber.org/~notom/for_tal/LAUS/readme.txt 
+
+M=Monthly, M13=Annual
+
+'''
+
 df = df.drop(df[(df.series != '03') | (df.period == 'M13')].index)
 df = df.drop('series_id',axis=1)
 df = df.drop('series',axis=1)
