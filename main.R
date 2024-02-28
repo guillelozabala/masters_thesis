@@ -72,8 +72,8 @@ for (i in unique(df_mop$state)){
   
   range_mop = (constants_mop[j] - window):(constants_mop[j] + window)
   
-  avg_effects_mop <- df_mop[(df_mop$state == i)&(df_mop$time_marker %in% range_mop),] %>%
-    dplyr::group_by(time_marker) %>%
+  avg_effects_mop <- df_mop[(df_mop$state == i)&(df_mop$time_marker %in% range_mop),] |>
+    dplyr::group_by(time_marker) |>
     summarise(avg = mean(urate_tilde_mop, na.rm = T))
   
   effects_mop[j,] <- matrix(avg_effects_mop$avg,1,length(range_mop))
@@ -87,8 +87,8 @@ for (i in unique(df_pmq$state)){
   
   range_pmq = (constants_pmq[j] - window):(constants_pmq[j] + window)
   
-  avg_effects_pmq <- df_pmq[(df_pmq$state == i)&(df_pmq$time_marker %in% range_pmq),] %>%
-    dplyr::group_by(time_marker) %>%
+  avg_effects_pmq <- df_pmq[(df_pmq$state == i)&(df_pmq$time_marker %in% range_pmq),] |>
+    dplyr::group_by(time_marker) |>
     summarise(avg = mean(urate_tilde_pmq, na.rm = T))
   
   effects_pmq[j,] <- matrix(avg_effects_pmq$avg,1,length(range_pmq))
@@ -104,7 +104,7 @@ for (i in unique(df_mop$state)){
   first_ts[j,4] <- median(df_mop[df_mop$time_marker == first_ts[j,1],]$minw)
 }
 first_ts <- as.data.frame(first_ts)
-first_ts <- first_ts %>% mutate(above = 1*(V3 > V4))
+first_ts <- first_ts |> mutate(above = 1*(V3 > V4))
 
 below_med_states <- state_names_mop[which(first_ts$above == 0)]
 above_med_states <- state_names_mop[which(first_ts$above == 1)]
@@ -130,10 +130,10 @@ gplot_values <- cbind(gplot_values,
                       gplot_values[["V4"]] - 1.96*gplot_values[["V5"]],
                       gplot_values[["V4"]] + 1.96*gplot_values[["V5"]])
 
-gplot_values <- gplot_values %>%
-  rename(ci1 = 'gplot_values[["V2"]] - 1.96 * gplot_values[["V3"]]') %>%
-  rename(ci2 = 'gplot_values[["V2"]] + 1.96 * gplot_values[["V3"]]') %>%
-  rename(ci3 = 'gplot_values[["V4"]] - 1.96 * gplot_values[["V5"]]') %>%
+gplot_values <- gplot_values |>
+  rename(ci1 = 'gplot_values[["V2"]] - 1.96 * gplot_values[["V3"]]') |>
+  rename(ci2 = 'gplot_values[["V2"]] + 1.96 * gplot_values[["V3"]]') |>
+  rename(ci3 = 'gplot_values[["V4"]] - 1.96 * gplot_values[["V5"]]') |>
   rename(ci4 = 'gplot_values[["V4"]] + 1.96 * gplot_values[["V5"]]') 
 
 library(ggtext)
@@ -166,10 +166,10 @@ gplot_values1 <- cbind(gplot_values1,
                        gplot_values1[["V4"]] - 1.96*gplot_values1[["V5"]],
                        gplot_values1[["V4"]] + 1.96*gplot_values1[["V5"]])
 
-gplot_values1 <- gplot_values1 %>%
-  rename(ci1 = 'gplot_values1[["V2"]] - 1.96 * gplot_values1[["V3"]]') %>%
-  rename(ci2 = 'gplot_values1[["V2"]] + 1.96 * gplot_values1[["V3"]]') %>%
-  rename(ci3 = 'gplot_values1[["V4"]] - 1.96 * gplot_values1[["V5"]]') %>%
+gplot_values1 <- gplot_values1 |>
+  rename(ci1 = 'gplot_values1[["V2"]] - 1.96 * gplot_values1[["V3"]]') |>
+  rename(ci2 = 'gplot_values1[["V2"]] + 1.96 * gplot_values1[["V3"]]') |>
+  rename(ci3 = 'gplot_values1[["V4"]] - 1.96 * gplot_values1[["V5"]]') |>
   rename(ci4 = 'gplot_values1[["V4"]] + 1.96 * gplot_values1[["V5"]]') 
 
 g_plot1 <- ggplot(gplot_values1) + 

@@ -17,28 +17,28 @@ ODD <- read.csv(paste(getwd(),"OD_deaths_educ.csv",sep = "/"),header=TRUE,sep=",
 # Transform the data
 
 minwg <- as_tibble(minwg)
-minwg <- minwg %>% 
-  rename(year = Year) %>%
-  rename(state = State.or.otherjurisdiction) %>%
+minwg <- minwg |> 
+  rename(year = Year) |>
+  rename(state = State.or.otherjurisdiction) |>
   rename(minw = Value)
 minwg <- minwg[minwg$state != 'Federal (FLSA)',]
 minwg <- minwg[minwg$year != 2023,]
-missing_minw <- minwg[minwg$year == 1998,] %>% mutate(year = 1999)
+missing_minw <- minwg[minwg$year == 1998,] |> mutate(year = 1999)
 minwg <- rbind(minwg,missing_minw) 
 
 ODD$perc_coll_educ <- gsub(',', '.', ODD$perc_coll_educ)
 ODD$perc_coll_educ <- as.numeric(ODD$perc_coll_educ)
 
-ODD <- ODD %>%
-  mutate(total_col_pop = total_pop*(perc_coll_educ/100)) %>%
-  mutate(total_non_col_pop = total_pop*(1 - perc_coll_educ/100)) %>%
-  mutate(Any_Non_Coll_pc = Any_Non_Coll/total_non_col_pop*100000) %>%
-  mutate(Heroin_Non_Coll_pc = Heroin_Non_Coll/total_non_col_pop*100000) %>%
-  mutate(Prescription_Non_Coll_pc = Prescription_Non_Coll/total_non_col_pop*100000) %>%
-  mutate(Synthetic_Non_Coll_pc = Synthetic_Non_Coll/total_non_col_pop*100000) %>%
-  mutate(Any_Coll_pc = Any_Coll/total_col_pop*100000) %>%
-  mutate(Heroin_Coll_pc = Heroin_Coll/total_col_pop*100000) %>%
-  mutate(Prescription_Coll_pc = Prescription_Coll/total_col_pop*100000) %>%
+ODD <- ODD |>
+  mutate(total_col_pop = total_pop*(perc_coll_educ/100)) |>
+  mutate(total_non_col_pop = total_pop*(1 - perc_coll_educ/100)) |>
+  mutate(Any_Non_Coll_pc = Any_Non_Coll/total_non_col_pop*100000) |>
+  mutate(Heroin_Non_Coll_pc = Heroin_Non_Coll/total_non_col_pop*100000) |>
+  mutate(Prescription_Non_Coll_pc = Prescription_Non_Coll/total_non_col_pop*100000) |>
+  mutate(Synthetic_Non_Coll_pc = Synthetic_Non_Coll/total_non_col_pop*100000) |>
+  mutate(Any_Coll_pc = Any_Coll/total_col_pop*100000) |>
+  mutate(Heroin_Coll_pc = Heroin_Coll/total_col_pop*100000) |>
+  mutate(Prescription_Coll_pc = Prescription_Coll/total_col_pop*100000) |>
   mutate(Synthetic_Coll_pc = Synthetic_Coll/total_col_pop*100000)
 
 # Initialize fonts
