@@ -1,6 +1,4 @@
-# The Opioid Crisis
-
-## State Regulations and Labor Market Outcomes
+# The Opioid Crisis: State Regulations and Labor Market Outcomes
 
 ### Master Thesis by Guillermo Martínez
 
