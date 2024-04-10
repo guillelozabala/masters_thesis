@@ -29,9 +29,9 @@ measure_code	measure_text
 
 06	labor force
 
-07	employment-population ratio
+07	employment-population ratio (empty)
 
-08	labor force participation rate
+08	labor force participation rate (empty)
 
 09	civilian noninstitutional population
 
@@ -50,16 +50,12 @@ df_unemp_rate = df.drop(df[(df.series != '03') | (df.period == 'M13')].index)
 df_unemp = df.drop(df[(df.series != '04') | (df.period == 'M13')].index)
 df_emp = df.drop(df[(df.series != '05') | (df.period == 'M13')].index)
 df_lab_force = df.drop(df[(df.series != '06') | (df.period == 'M13')].index)
-df_emp_pop = df.drop(df[(df.series != '07') | (df.period == 'M13')].index)
-df_lab_force_rate = df.drop(df[(df.series != '08') | (df.period == 'M13')].index)
-
 
 df_dict = {'unemployment_rate':df_unemp_rate,
            'unemployment':df_unemp,
            'employment':df_emp,
-           'labor_force':df_lab_force,
-           'employment_population_ratio':df_emp_pop,
-           'labor_force_participation_rate':df_lab_force_rate}
+           'labor_force':df_lab_force
+           }
 
 for k, i_df in df_dict.items():
     i_df = i_df.drop('series_id',axis=1)
