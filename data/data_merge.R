@@ -132,7 +132,7 @@ clean_lab_market_data <- function(df){
       county = county_name
     ) |>
     rename(
-      urate = value
+      rate = value
     ) |>
     mutate(
       time_marker = (year-1960)*12 + month
@@ -140,7 +140,7 @@ clean_lab_market_data <- function(df){
   
   df <- df[,colnames(df) != "state_abbr"]
   
-  df$urate <- as.numeric(df$urate)
+  df$rate <- as.numeric(df$rate)
   
   return(df)
 }
@@ -193,13 +193,93 @@ demographics <- cbind(
 
 # Merging
 
-df <- merge(labor_market_clean$unemp_rate, demographics, by = c("year","fips")) #need different names for the urate values
-df <- merge(df, horwitz, by = "state")
-df <- merge(df, minwage, by = c("state","year"))
+df <- merge(
+  rename(
+    labor_market_clean$unemp_rate,
+    unem_rate = rate
+    ),
+  rename(
+    labor_market_clean$unemp,
+    unem = rate
+    ),
+  by = c(
+    "year",
+    "fips",
+    "month",
+    "county",
+    "state",
+    "time_marker"
+    )
+) 
+
+df <- merge(
+  df,
+  rename(
+    labor_market_clean$emp,
+    emp = rate
+    ),
+  by = c(
+    "year",
+    "fips",
+    "month",
+    "county",
+    "state",
+    "time_marker"
+  )
+) 
+
+df <- merge(
+  df,
+  rename(
+    labor_market_clean$lab_force,
+    lab_force = rate
+    ),
+  by = c(
+    "year",
+    "fips",
+    "month",
+    "county",
+    "state",
+    "time_marker"
+  )
+) 
+
+df <- merge(
+  df,
+  demographics,
+  by = c(
+    "year",
+    "fips"
+    )
+  )
+
+df <- merge(
+  df,
+  horwitz,
+  by = "state"
+  )
+
+df <- merge(
+  df,
+  minwage,
+  by = c(
+    "state",
+    "year"
+    )
+  )
+
 df <- df[df$year >= 1998 & df$year <= 2019,]
 
 # df <- df |>
-#   mutate(indicator_pmq = 1*(time_marker >= first_treatment_pmq)) |>
-#   mutate(indicator_mop = 1*(time_marker >= first_treatment_mop))
+#   mutate(
+#     indicator_pmq = 1*(time_marker >= first_treatment_pmq)
+#     ) |>
+#   mutate(
+#     indicator_mop = 1*(time_marker >= first_treatment_mop)
+#     )
 
-write.csv(df, paste(getwd(),"joined_data.csv",sep = "/"), row.names=F)
+write.csv(
+  df, 
+  paste(getwd(),"joined_data.csv",sep = "/"),
+  row.names=F
+  )

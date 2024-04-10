@@ -10,12 +10,27 @@ file_location <- rstudioapi::getSourceEditorContext()$path
 setwd(dirname(file_location)) #set path to location
 
 # Load the data
-data_location <- paste(getwd(),"data/joined_data.csv",sep = "/")
-df <- read.csv(data_location,header=TRUE,sep=",")
+data_location <- paste(
+  getwd(),
+  "data/joined_data.csv",
+  sep = "/"
+  )
+
+df <- read.csv(
+  data_location,
+  header=TRUE,
+  sep=","
+  )
 
 # Prepare the covariates
-names_covar <- names(df[,grep("_ratio$", colnames(df))])
-covariates <- paste(names_covar, collapse = " + ")
+names_covar <- names(
+  df[,grep("_ratio$", colnames(df))]
+  )
+
+covariates <- paste(
+  names_covar,
+  collapse = " + "
+  )
 
 # One-side length of effects
 window = 24
@@ -28,40 +43,81 @@ not_yet_treated_pmq <- df[df[["time_marker"]] < df$first_treatment_pmq,]
 
 # First stage (mop)
 first_stage_mop <- fixest::feols(
-  stats::as.formula(paste0("urate ~ ", covariates, " |", "fips", " + ", "time_marker")),
+  stats::as.formula(
+    paste0("unem_rate ~ ", covariates, " |", "fips", " + ", "time_marker")
+    ),
   data = not_yet_treated_mop,
   combine.quick = FALSE,
   warn = FALSE,
-  notes = FALSE)
+  notes = FALSE
+  )
 
 # First stage (pmq)
 first_stage_pmq <- fixest::feols(
-  stats::as.formula(paste0("urate ~ ", covariates, " |", "fips", " + ", "time_marker")),
+  stats::as.formula(
+    paste0("unem_rate ~ ", covariates, " |", "fips", " + ", "time_marker")
+    ),
   data = not_yet_treated_pmq,
   combine.quick = FALSE,
   warn = FALSE,
-  notes = FALSE)
+  notes = FALSE
+  )
 
 # Fitted values and diffs.
-df[[paste0("urate", "_hat_mop")]] <- stats::predict(first_stage_mop, newdata = df) 
-df[[paste0("urate", "_tilde_mop")]] <- df[["urate"]] - df[[paste0("urate", "_hat_mop")]]
+df[[paste0("unem_rate", "_hat_mop")]] <- stats::predict(
+  first_stage_mop,
+  newdata = df
+  ) 
 
-df[[paste0("urate", "_hat_pmq")]] <- stats::predict(first_stage_pmq, newdata = df) 
-df[[paste0("urate", "_tilde_pmq")]] <- df[["urate"]] - df[[paste0("urate", "_hat_pmq")]]
+df[[paste0("unem_rate", "_tilde_mop")]] <- df[["unem_rate"]] - df[[paste0("unem_rate", "_hat_mop")]]
+
+df[[paste0("unem_rate", "_hat_pmq")]] <- stats::predict(
+  first_stage_pmq,
+  newdata = df
+  )
+
+df[[paste0("unem_rate", "_tilde_pmq")]] <- df[["unem_rate"]] - df[[paste0("unem_rate", "_hat_pmq")]]
 
 # Initialize matrices
-effects_mop <- matrix(0,length(unique(df$state)),2*window+1)
-constants_mop <- matrix(0,length(unique(df$state)),1)
+effects_mop <- matrix(
+  0,
+  length(unique(df$state)),
+  2*window+1
+  )
 
-effects_pmq <- matrix(0,length(unique(df$state)),2*window+1)
-constants_pmq <- matrix(0,length(unique(df$state)),1)
+constants_mop <- matrix(
+  0,
+  length(unique(df$state)),
+  1
+  )
+
+effects_pmq <- matrix(
+  0,
+  length(unique(df$state)),
+  2*window+1
+  )
+
+constants_pmq <- matrix(
+  0,
+  length(unique(df$state)),
+  1
+  )
 
 # Drop never-takers for predictions
 df_mop <- df[!is.na(df$first_treatment_mop),]
 df_pmq <- df[!is.na(df$first_treatment_pmq),]
 
-state_names_mop <- matrix(unique(df_mop$state),length(unique(df_mop$state)),1)
-state_names_pmq <- matrix(unique(df_pmq$state),length(unique(df_pmq$state)),1)
+state_names_mop <- matrix(
+  unique(df_mop$state),
+  length(unique(df_mop$state)),
+  1
+  )
+
+state_names_pmq <- matrix(
+  unique(df_pmq$state),
+  length(unique(df_pmq$state)),
+  1
+  )
 
 #Aggregate
 for (i in unique(df_mop$state)){
@@ -74,7 +130,7 @@ for (i in unique(df_mop$state)){
   
   avg_effects_mop <- df_mop[(df_mop$state == i)&(df_mop$time_marker %in% range_mop),] |>
     dplyr::group_by(time_marker) |>
-    summarise(avg = mean(urate_tilde_mop, na.rm = T))
+    summarise(avg = mean(unem_rate_tilde_mop, na.rm = T))
   
   effects_mop[j,] <- matrix(avg_effects_mop$avg,1,length(range_mop))
 } 
@@ -89,7 +145,7 @@ for (i in unique(df_pmq$state)){
   
   avg_effects_pmq <- df_pmq[(df_pmq$state == i)&(df_pmq$time_marker %in% range_pmq),] |>
     dplyr::group_by(time_marker) |>
-    summarise(avg = mean(urate_tilde_pmq, na.rm = T))
+    summarise(avg = mean(unem_rate_tilde_pmq, na.rm = T))
   
   effects_pmq[j,] <- matrix(avg_effects_pmq$avg,1,length(range_pmq))
 } 
