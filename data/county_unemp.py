@@ -1,12 +1,13 @@
 
 '''
-returns unemployment.csv
+returns unemployment_rate.csv, unemployment.csv, employment.csv, labor_force.csv, 
+employment_population_ratio.csv, labor_force_participation_rate.csv
 
 '''
 
 import pandas as pd
 
-df = pd.read_csv(r'./ladata64County.txt',sep="\t")
+df = pd.read_csv(r'./data/ladata64County.txt',sep="\t")
 df = df.drop('footnote_codes',axis=1)
 df = df.rename(columns={df.columns.values.tolist()[0]: 'series_id', df.columns.values.tolist()[1]: 'year',
                         df.columns.values.tolist()[2]: 'period', df.columns.values.tolist()[3]: 'value',})
@@ -36,20 +37,36 @@ measure_code	measure_text
 
 https://users.nber.org/~notom/for_tal/LAUS/readme.txt 
 
-M=Monthly, M13=Annual
+MXX=Monthly, M13=Annual
 
 '''
 
-df = df.drop(df[(df.series != '03') | (df.period == 'M13')].index)
-df = df.drop('series_id',axis=1)
-df = df.drop('series',axis=1)
-df = df.drop('period',axis=1)
-df = df.drop('state_fip',axis=1)
-df = df.drop('county_fip',axis=1)
-
-dfips = pd.read_csv(r'./county_fips_master.csv',encoding = "ISO-8859-1")
+dfips = pd.read_csv(r'./data/county_fips_master.csv',encoding = "ISO-8859-1")
 dfips = dfips[['fips','county_name','state_abbr','state_name']]
 dfips['fips'] = dfips['fips'].astype(str).str.rjust(5,'0')
 
-df_final = df.merge(dfips, left_on='fips', right_on='fips')
-df_final.to_csv(r'./unemployment.csv',sep=',',index=False)
+
+df_unemp_rate = df.drop(df[(df.series != '03') | (df.period == 'M13')].index)
+df_unemp = df.drop(df[(df.series != '04') | (df.period == 'M13')].index)
+df_emp = df.drop(df[(df.series != '05') | (df.period == 'M13')].index)
+df_lab_force = df.drop(df[(df.series != '06') | (df.period == 'M13')].index)
+df_emp_pop = df.drop(df[(df.series != '07') | (df.period == 'M13')].index)
+df_lab_force_rate = df.drop(df[(df.series != '08') | (df.period == 'M13')].index)
+
+
+df_dict = {'unemployment_rate':df_unemp_rate,
+           'unemployment':df_unemp,
+           'employment':df_emp,
+           'labor_force':df_lab_force,
+           'employment_population_ratio':df_emp_pop,
+           'labor_force_participation_rate':df_lab_force_rate}
+
+for k, i_df in df_dict.items():
+    i_df = i_df.drop('series_id',axis=1)
+    i_df = i_df.drop('series',axis=1)
+    i_df = i_df.drop('period',axis=1)
+    i_df = i_df.drop('state_fip',axis=1)
+    i_df = i_df.drop('county_fip',axis=1)
+
+    i_df_final= i_df.merge(dfips, left_on='fips', right_on='fips')
+    i_df_final.to_csv(f'./data/{k}.csv',sep=',',index=False)

@@ -8,7 +8,7 @@ library(tidyverse)
 
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
-unemp <- read.csv(file.path(getwd(), "unemployment.csv"), header = TRUE, sep = ",")
+unemp <- read.csv(file.path(getwd(), "unemployment_rate.csv"), header = TRUE, sep = ",")
 horwitz <- read.csv(file.path(getwd(), "horwitz2020.csv"), header = TRUE, sep = ",")
 minwage <- read.csv(file.path(getwd(), "minwage_clean_fed_ub.csv"), header = TRUE, sep = ",")
 demographics <- read.csv(file.path(getwd(), "county_demographics.csv"), header = TRUE, sep = ",")

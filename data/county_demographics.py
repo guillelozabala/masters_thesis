@@ -267,5 +267,5 @@ for i in range(19):
     )
 
 ### save the dataset
-    
+
 demo_data.toPandas().to_csv(r'./county_demographics.csv',sep=',',index=False)
