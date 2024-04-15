@@ -113,6 +113,9 @@ fips_names_pmq <- empty_matrix(length(unique(df_pmq$state)),1)
 fips_names_mop <- unique(df_mop$fips)
 fips_names_pmq <- unique(df_pmq$fips)
 
+# For minimum wage comparisons
+above_below_minw = empty_matrix(length(state_names_mop),4)
+
 # Obtain average effects by state
 for (i in state_names_mop){
   
@@ -239,8 +242,7 @@ for (i in fips_names_mop){
       1,
       len_range)
   }
-  
-  #effects_mop_cty[j,] <- matrix(avg_effects_mop_cty$unem_rate_tilde_mop,1,length(range_mop))
+
 } 
 
 for (i in fips_names_pmq){
@@ -262,70 +264,163 @@ for (i in fips_names_pmq){
   
   # same provision as before
   len_range = length(range_pmq)
-  len_effects = length(avg_effects_pmq_state$avg)
+  len_effects = length(avg_effects_pmq_cty$unem_rate_tilde_pmq)
   
   if (len_effects == len_range){
     effects_pmq_cty[j,] <- matrix(
-      avg_effects_pmq_cty$unem_rate_tilde_mop,
+      avg_effects_pmq_cty$unem_rate_tilde_pmq,
       1,
       len_range) 
   } else {
     late_adopters <- rep(NaN,len_range)
-    late_adopters[1:len_effects] <- avg_effects_pmq_cty$unem_rate_tilde_mop
+    late_adopters[1:len_effects] <- avg_effects_pmq_cty$unem_rate_tilde_pmq
     effects_pmq_cty[j,] <- matrix(
       late_adopters,
       1,
       len_range)
   }
   
-  #effects_pmq_cty[j,] <- matrix(avg_effects_pmq_cty$unem_rate_tilde_pmq,1,length(range_pmq))
 } 
 
 # Find which states were above the median min wage when PDMP passed
-first_ts = matrix(0,length(unique(df_mop$state)),4)
 
-for (i in unique(df_mop$state)){
+for (i in state_names_mop){
+  
+  # get index for element in vector
   j = which(1*(state_names_mop == i) == 1)
   
-  first_ts[j,1] <- unique(
+  # get treatment date for each state
+  above_below_minw[j,1] <- unique(
     df_mop[df_mop$state == i,]$first_treatment_mop
     )
   
-  first_ts[j,2] <- (
-    first_ts[j,1] - unique(
-      df_mop[(df_mop$state == i)&(df_mop$time_marker == first_ts[j,1]),]$mop_month
+  # retrieve the year of treatment (this can be done way easier (?))
+  above_below_minw[j,2] <- (
+    above_below_minw[j,1] - unique(
+      df_mop[(df_mop$state == i)&(df_mop$time_marker == above_below_minw[j,1]),]$mop_month
       )
     )/12 + 1960
   
-  first_ts[j,3] <- unique(
-    df_mop[(df_mop$state == i)&(df_mop$time_marker == first_ts[j,1]),]$minw
+  # get minimum wage at treatment
+  above_below_minw[j,3] <- unique(
+    df_mop[(df_mop$state == i)&(df_mop$time_marker == above_below_minw[j,1]),]$minw
     )
   
-  first_ts[j,4] <- median(
-    df_mop[df_mop$time_marker == first_ts[j,1],]$minw
+  # get the national medians at treatment
+  above_below_minw[j,4] <- median(
+    df_mop[df_mop$time_marker == above_below_minw[j,1],]$minw
     )
 
 }
 
-first_ts <- as.data.frame(first_ts)
-first_ts <- first_ts |> mutate(above = 1*(V3 > V4))
+# As data frame
+above_below_minw <- as.data.frame(above_below_minw)
 
-below_med_states <- state_names_mop[which(first_ts$above == 0)]
-above_med_states <- state_names_mop[which(first_ts$above == 1)]
+# Get indicators
+above_below_minw <- above_below_minw |> mutate(above = 1*(V3 > V4))
+
+# Select the states
+below_med_states <- state_names_mop[which(above_below_minw$above == 0)]
+above_med_states <- state_names_mop[which(above_below_minw$above == 1)]
 
 # Split the sample accordingly
 effects_mop_below_mw <- effects_mop_state[state_names_mop %in% below_med_states,]
 effects_mop_above_mw <- effects_mop_state[state_names_mop %in% above_med_states,]
 
-effects_pmq_below_mw <- effects_pmq[state_names_pmq %in% below_med_states,]
-effects_pmq_above_mw <- effects_pmq[state_names_pmq %in% above_med_states,]
+effects_pmq_below_mw <- effects_pmq_state[state_names_pmq %in% below_med_states,]
+effects_pmq_above_mw <- effects_pmq_state[state_names_pmq %in% above_med_states,]
 
-# Plot
+# Split counties by distribution of Kaitz-p indices
+
+# Initialize list
+kaitz_matrices <- vector("list", length = 5)
+
+names(kaitz_matrices) <- c("kaitz_pct10_matrix", 
+                           "kaitz_pct25_matrix", 
+                           "kaitz_median_matrix", 
+                           "kaitz_pct75_matrix", 
+                           "kaitz_pct90_matrix")
+
+for (kma in names(kaitz_matrices)){
+  
+  # fill the list with initialized matrices  
+  kaitz_values <- empty_matrix(length(fips_names_mop),4)
+  
+  for (i in fips_names_mop){
+    
+    # get index for element in vector
+    j = which(1*(fips_names_mop == i) == 1)
+    
+    # get treatment date for each state
+    kaitz_values[j,1] <- unique(
+      df_mop[df_mop$fips == i,]$first_treatment_mop
+    )
+    
+    # retrieve the year of treatment (this can be done way easier (?))
+    year_treatment <- (
+      kaitz_values[j,1] - unique(
+        df_mop[(df_mop$fips == i)&(df_mop$time_marker == kaitz_values[j,1]),]$mop_month
+      )
+    )/12 + 1960
+    
+    if (length(year_treatment) > 0) {
+      kaitz_values[j,2] <- year_treatment
+    } else {
+      kaitz_values[j,2] = NaN
+      print("Replacement vector is empty. NA assignment performed.")
+    } #CHECK
+    
+    # get kaitz percentile at treatment
+    kaitz_pct_treat <- df_mop[(df_mop$fips == i)&(df_mop$time_marker == kaitz_values[j,1]),] |>
+      select(
+        sub("_matrix$", "", kma)
+      )
+    
+    if (length(unique(kaitz_pct_treat[[1]])) > 0) {
+      kaitz_values[j,3] <- unique(kaitz_pct_treat[[1]])
+    } else {
+      kaitz_values[j,3] = NaN
+      print("Replacement vector is empty. NA assignment performed.")
+    }
+    
+    # get national median of kaitz percentile at treatment
+    kaitz_pct_treat_nac <- df_mop[df_mop$time_marker == kaitz_values[j,1],] |> 
+      select(
+        sub("_matrix$", "", kma)
+      )
+    
+    kaitz_values[j,4] <- kaitz_pct_treat_nac[[1]] |> 
+      median(na.rm = T)
+    
+  }
+  
+  kaitz_matrices[[kma]] <- kaitz_values
+  
+}
+
+
+
+
+# Plots
+
+#Ilegible esto
 gplot_values <- as_tibble(cbind(-window:window,
                                 colMeans(effects_mop_below_mw,na.rm=T),
-                                sapply(1:(2*window+1),function(x){sd(effects_mop_below_mw[,x],na.rm = T)/sqrt(length(effects_mop_below_mw[,x]))}),
+                                sapply(
+                                  1:(2*window+1),
+                                  function(x){
+                                    sd(effects_mop_below_mw[,x], na.rm = T)/sqrt(length(effects_mop_below_mw[,x]))
+                                    }
+                                  ),
                                 colMeans(effects_mop_above_mw,na.rm=T),
-                                sapply(1:(2*window+1),function(x){sd(effects_mop_above_mw[,x],na.rm = T)/sqrt(length(effects_mop_above_mw[,x]))})))
+                                sapply(
+                                  1:(2*window+1),
+                                  function(x){
+                                    sd(effects_mop_above_mw[,x],na.rm = T)/sqrt(length(effects_mop_above_mw[,x]))
+                                    }
+                                  )
+                                )
+                          )
 
 gplot_values <- cbind(gplot_values,
                       gplot_values[["V2"]] - 1.96*gplot_values[["V3"]],
@@ -395,74 +490,13 @@ g_plot1
 
 
 
-# Split states by distribution of Kaitz p indices
-kaitz_matrices <- vector("list", length = 5)
 
 
-names(kaitz_matrices) <- c("kaitz_pct10_matrix", 
-                           "kaitz_pct25_matrix", 
-                           "kaitz_median_matrix", 
-                           "kaitz_pct75_matrix", 
-                           "kaitz_pct90_matrix")
-
-for (kaimatrix in names(kaitz_matrices)){
-  
-  kaitz_matrices[[kaimatrix]] <- matrix(0, nrow = length(unique(df_mop$fips)), ncol = 4)
-  
-  kaimat <- kaitz_matrices[[kaimatrix]]
-  
-  for (j in unique(df_mop$fips)){
-    
-    k = which(
-      1*(fips_names_mop == j) == 1
-      )
-    
-    kaimat[k,1] <- unique(
-      df_mop[df_mop$fips == j,]$first_treatment_mop
-      )
-    
-    replacement <- (
-      kaimat[k,1] - unique(
-        df_mop[(df_mop$fips == j)&(df_mop$time_marker == kaimat[k,1]),]$mop_month
-        )
-      )/12 + 1960
-    
-    if (length(replacement) > 0) {
-      kaimat[k,2] <- replacement
-    } else {
-      kaimat[k,2] = NA
-      print("Replacement vector is empty. NA assignment performed.")
-    }
-    
-    kaitz_values_0 <- df_mop[(df_mop$fips == j)&(df_mop$time_marker == kaimat[k,1]),] |>
-      select(
-        sub("_matrix$", "", kaimatrix)
-      )
-    
-    if (length(unique(kaitz_values_0[[1]])) > 0) {
-      kaimat[k,3] <- unique(kaitz_values_0[[1]])
-    } else {
-      kaimat[k,3] = NA
-      print("Replacement vector is empty. NA assignment performed.")
-    }
-    
-    kaitz_values_1 <- df_mop[df_mop$time_marker == kaimat[k,1],] |> 
-      select(
-        sub("_matrix$", "", kaimatrix)
-        )
-    
-    kaimat[k,4] <- kaitz_values_1[[1]] |> 
-      median(na.rm = T)
-    
-  }
-  
-  kaitz_matrices[[kaimatrix]] <- kaimat
-  
-}
 
 
-for (kaimatrix in names(kaitz_matrices)){
-  assign(sub("_matrix$", "_df", kaimatrix),kaitz_matrices[[kaimatrix]])
+
+for (kma in names(kaitz_matrices)){
+  assign(sub("_matrix$", "_df", kma),kaitz_matrices[[kma]])
 }
 
 
