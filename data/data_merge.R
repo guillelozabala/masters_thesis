@@ -44,6 +44,12 @@ minwage <- read.csv(
   sep = ","
   )
 
+minw_bindgness <- read.csv(
+  file.path(getwd(), "county_percentiles.csv"),
+  header = TRUE,
+  sep = ","
+)
+
 demographics <- read.csv(
   file.path(getwd(), "county_demographics.csv"),
   header = TRUE,
@@ -182,6 +188,8 @@ minwage <- rbind(
   missing_minw
   ) 
 
+
+
 # Demographics
 
 ## Select the ratios only
@@ -267,6 +275,16 @@ df <- merge(
     "year"
     )
   )
+
+df <- merge(
+  df,
+  minw_bindgness,
+  by = c(
+    "fips",
+    "year"
+  ),
+  all = T
+)
 
 df <- df[df$year >= 1998 & df$year <= 2019,]
 
