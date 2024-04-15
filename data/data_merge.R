@@ -286,7 +286,36 @@ df <- merge(
   all = T
 )
 
+# take logs
+df <- df |>
+  mutate(
+    log_minw = log(minw)
+  ) |>
+  mutate(
+    log_h_pct10 = log(h_pct10),
+    log_h_pct25 = log(h_pct25),
+    log_h_median = log(h_median),
+    log_h_pct75 = log(h_pct75),
+    log_h_pct90 = log(h_pct90)
+  )
+
+# kaitz-p indices
+df <- df |>
+  mutate(
+    kaitz_pct10 = log_minw - log(h_pct10),
+    kaitz_pct25 = log_minw - log(h_pct25),
+    kaitz_median = log_minw - log(h_median),
+    kaitz_pct75 = log_minw - log(h_pct75),
+    kaitz_pct90 = log_minw - log(h_pct90)
+  )
+
 df <- df[df$year >= 1998 & df$year <= 2019,]
+
+# DC (one county) has duplicated values
+df_dc <- df[df["fips"] == 11001,]
+df_dc <- df_dc[!duplicated(df_dc),]
+df <- df[!(df["fips"] == 11001),]
+df <- rbind(df,df_dc)
 
 # df <- df |>
 #   mutate(

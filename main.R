@@ -1,4 +1,10 @@
 
+# This code returns the main estimates.
+# 
+# NOTE: 
+# mop: modern system operational
+# pmq: prescriber must query
+
 rm(list=ls()) 
 set.seed(123)
 
@@ -6,48 +12,27 @@ library(tidyverse)
 library(fixest)
 library(ggtext)
 
+# One-side length of effects considered
+window = 24 # two years
+
 # Set the path
 file_location <- rstudioapi::getSourceEditorContext()$path
-setwd(dirname(file_location)) #set path to location
+setwd(dirname(file_location)) # set path to location
 
-# Load the data
 data_location <- paste(
   getwd(),
   "data/joined_data.csv",
   sep = "/"
   )
 
+# Load the data
 df <- read.csv(
   data_location,
   header=TRUE,
   sep=","
   )
-
-# Take logs
-df <- df |>
-   mutate(
-     log_minw = log(minw)
-     ) |>
-   mutate(
-     log_h_pct10 = log(h_pct10),
-     log_h_pct25 = log(h_pct25),
-     log_h_median = log(h_median),
-     log_h_pct75 = log(h_pct75),
-     log_h_pct90 = log(h_pct90)
-     )
-
-# Kaitz p indices
-df <- df |>
-  mutate(
-    kaitz_pct10 = log_minw - log(h_pct10),
-    kaitz_pct25 = log_minw - log(h_pct25),
-    kaitz_median = log_minw - log(h_median),
-    kaitz_pct75 = log_minw - log(h_pct75),
-    kaitz_pct90 = log_minw - log(h_pct90)
-  )
-
-
-# Prepare the covariates
+  
+# Prepare the covariates (as formula)
 names_covar <- names(
   df[,grep("_ratio$", colnames(df))]
   )
@@ -57,16 +42,11 @@ covariates <- paste(
   collapse = " + "
   )
 
-# One-side length of effects
-window = 24
+# Select not yet treated counties
+not_yet_treated_mop <- df[df[["time_marker"]] < df$first_treatment_mop,] # mop
+not_yet_treated_pmq <- df[df[["time_marker"]] < df$first_treatment_pmq,] # pmq
 
-# Not yet treated (mop)
-not_yet_treated_mop <- df[df[["time_marker"]] < df$first_treatment_mop,]
-
-# Not yet treated (pmq)
-not_yet_treated_pmq <- df[df[["time_marker"]] < df$first_treatment_pmq,]
-
-# First stage (mop)
+# First stage regressions
 first_stage_mop <- fixest::feols(
   stats::as.formula(
     paste0("unem_rate ~ ", covariates, " |", "fips", " + ", "time_marker")
@@ -75,9 +55,8 @@ first_stage_mop <- fixest::feols(
   combine.quick = FALSE,
   warn = FALSE,
   notes = FALSE
-  )
+  ) # mop
 
-# First stage (pmq)
 first_stage_pmq <- fixest::feols(
   stats::as.formula(
     paste0("unem_rate ~ ", covariates, " |", "fips", " + ", "time_marker")
@@ -86,93 +65,220 @@ first_stage_pmq <- fixest::feols(
   combine.quick = FALSE,
   warn = FALSE,
   notes = FALSE
-  )
+  ) # pmq
 
-# Fitted values and diffs.
-df[[paste0("unem_rate", "_hat_mop")]] <- stats::predict(
+# Include fitted values
+df[["unem_rate_hat_mop"]] <- stats::predict(
   first_stage_mop,
   newdata = df
-  ) 
+  )
 
-df[[paste0("unem_rate", "_tilde_mop")]] <- df[["unem_rate"]] - df[[paste0("unem_rate", "_hat_mop")]]
-
-df[[paste0("unem_rate", "_hat_pmq")]] <- stats::predict(
+df[["unem_rate_hat_pmq"]] <- stats::predict(
   first_stage_pmq,
   newdata = df
   )
 
-df[[paste0("unem_rate", "_tilde_pmq")]] <- df[["unem_rate"]] - df[[paste0("unem_rate", "_hat_pmq")]]
-
-# Initialize matrices
-effects_mop <- matrix(
-  0,
-  length(unique(df$state)),
-  2*window+1
-  )
-
-constants_mop <- matrix(
-  0,
-  length(unique(df$state)),
-  1
-  )
-
-effects_pmq <- matrix(
-  0,
-  length(unique(df$state)),
-  2*window+1
-  )
-
-constants_pmq <- matrix(
-  0,
-  length(unique(df$state)),
-  1
-  )
+# Include unexplained part
+df[["unem_rate_tilde_mop"]] <- df[["unem_rate"]] - df[["unem_rate_hat_mop"]] 
+df[["unem_rate_tilde_pmq"]] <- df[["unem_rate"]] - df[["unem_rate_hat_pmq"]]
 
 # Drop never-takers for predictions
 df_mop <- df[!is.na(df$first_treatment_mop),]
 df_pmq <- df[!is.na(df$first_treatment_pmq),]
 
-state_names_mop <- matrix(
-  unique(df_mop$state),
-  length(unique(df_mop$state)),
-  1
-  )
+# Initialize matrices
+empty_matrix <- function(rows, columns) {
+  matrix(0, nrow = rows, ncol = columns)
+}
 
-state_names_pmq <- matrix(
-  unique(df_pmq$state),
-  length(unique(df_pmq$state)),
-  1
-  )
+# Average effects on each state
+effects_mop_state <- empty_matrix(length(unique(df$state)),2*window+1) 
+effects_pmq_state <- empty_matrix(length(unique(df$state)),2*window+1)
 
-#Aggregate
-for (i in unique(df_mop$state)){
+# Effects on each county
+effects_mop_cty <- empty_matrix(length(unique(df$fips)),2*window+1)
+effects_pmq_cty <- empty_matrix(length(unique(df$fips)),2*window+1)
+
+# States considered
+state_names_mop <- empty_matrix(length(unique(df_mop$state)),1)
+state_names_pmq <- empty_matrix(length(unique(df_pmq$state)),1)
+
+state_names_mop <- unique(df_mop$state)
+state_names_pmq <- unique(df_pmq$state)
+
+# FIPS considered
+fips_names_mop <- empty_matrix(length(unique(df_mop$state)),1)
+fips_names_pmq <- empty_matrix(length(unique(df_pmq$state)),1)
+
+fips_names_mop <- unique(df_mop$fips)
+fips_names_pmq <- unique(df_pmq$fips)
+
+# Obtain average effects by state
+for (i in state_names_mop){
   
+  # get index for element in vector
   j = which(1*(state_names_mop == i) == 1)
   
-  constants_mop[j] = unique(df_mop[df_mop$state == i,]$first_treatment_mop)
+  # get treatment date for each state
+  treatment_mop_state = unique(
+    df_mop[df_mop$state == i,]$first_treatment_mop
+  )
   
-  range_mop = (constants_mop[j] - window):(constants_mop[j] + window)
+  # create a range around the date of treatment
+  range_mop = (treatment_mop_state - window):(treatment_mop_state + window)
   
-  avg_effects_mop <- df_mop[(df_mop$state == i)&(df_mop$time_marker %in% range_mop),] |>
+  # average the effects of the counties in each period
+  avg_effects_mop_state <- df_mop[(df_mop$state == i)&(df_mop$time_marker %in% range_mop),] |>
     dplyr::group_by(time_marker) |>
     summarise(avg = mean(unem_rate_tilde_mop, na.rm = T))
   
-  effects_mop[j,] <- matrix(avg_effects_mop$avg,1,length(range_mop))
+  # Kentucky was an early adopter 
+  # (mop passed in 07/1999).
+  # to include the available effects we have to 
+  # plug in missing values in the initial periods
+  # (otherwise vector to short to fit the row of
+  # 'effects_mop_state')
+  
+  # get the lengths
+  len_range = length(range_mop)
+  len_effects = length(avg_effects_mop_state$avg)
+
+  if (len_effects == len_range){
+    effects_mop_state[j,] <- matrix(
+      avg_effects_mop_state$avg,
+      1,
+      len_range) 
+  } else { #Kentucky
+    early_adopters <- rep(NaN,len_range)
+    early_adopters[(len_range - len_effects + 1):len_range] <- avg_effects_mop_state$avg
+    effects_mop_state[j,] <- matrix(
+      early_adopters,
+      1,
+      len_range)
+  }
+  
 } 
 
-for (i in unique(df_pmq$state)){
+for (i in state_names_pmq){
   
+  # get index for element in vector
   j = which(1*(state_names_pmq == i) == 1)
   
-  constants_pmq[j] = unique(df_pmq[df_pmq$state == i,]$first_treatment_pmq)
+  # get treatment date for each state
+  treatments_pmq_state = unique(
+    df_pmq[df_pmq$state == i,]$first_treatment_pmq
+    )
   
-  range_pmq = (constants_pmq[j] - window):(constants_pmq[j] + window)
+  # create a range around the date of treatment
+  range_pmq = (treatments_pmq_state - window):(treatments_pmq_state + window)
   
-  avg_effects_pmq <- df_pmq[(df_pmq$state == i)&(df_pmq$time_marker %in% range_pmq),] |>
+  # average the effects of the counties in each period
+  avg_effects_pmq_state <- df_pmq[(df_pmq$state == i)&(df_pmq$time_marker %in% range_pmq),] |>
     dplyr::group_by(time_marker) |>
     summarise(avg = mean(unem_rate_tilde_pmq, na.rm = T))
   
-  effects_pmq[j,] <- matrix(avg_effects_pmq$avg,1,length(range_pmq))
+  # in this case we have a lot of late
+  # adopters, so the adjust is in the other direction
+  
+  # get the lengths
+  len_range = length(range_pmq)
+  len_effects = length(avg_effects_pmq_state$avg)
+  
+  if (len_effects == len_range){
+    effects_pmq_state[j,] <- matrix(
+      avg_effects_pmq_state$avg,
+      1,
+      len_range) 
+  } else {
+    late_adopters <- rep(NaN,len_range)
+    late_adopters[1:len_effects] <- avg_effects_pmq_state$avg
+    effects_pmq_state[j,] <- matrix(
+      late_adopters,
+      1,
+      len_range)
+  }
+  
+} 
+
+# Obtain effects by county
+for (i in fips_names_mop){
+  
+  # get index for element in vector
+  j = which(1*(fips_names_mop == i) == 1)
+  
+  # get treatment date for each state
+  treatments_mop_cty = unique(
+    df_mop[df_mop$fips == i,]$first_treatment_mop
+    )
+  
+  # create a range around the date of treatment
+  range_mop = (treatments_mop_cty - window):(treatments_mop_cty + window)
+  
+  # obtain the effects of the counties in each period
+  avg_effects_mop_cty <- df_mop[(df_mop$fips == i)&(df_mop$time_marker %in% range_mop),] 
+  avg_effects_mop_cty <- avg_effects_mop_cty[order(avg_effects_mop_cty$time_marker),]
+  
+  # same provision for Kentucky
+  len_range = length(range_mop)
+  len_effects = length(avg_effects_mop_cty$unem_rate_tilde_mop)
+  
+  # print(i)
+  # print(len_range)
+  # print(len_effects)
+  
+  if (len_effects == len_range){
+    effects_mop_cty[j,] <- matrix(
+      avg_effects_mop_cty$unem_rate_tilde_mop,
+      1,
+      len_range)
+  } else { #Kentucky
+    early_adopters <- rep(NaN,len_range)
+    early_adopters[(len_range - len_effects + 1):len_range] <- avg_effects_mop_cty$unem_rate_tilde_mop
+    effects_mop_cty[j,] <- matrix(
+      early_adopters,
+      1,
+      len_range)
+  }
+  
+  #effects_mop_cty[j,] <- matrix(avg_effects_mop_cty$unem_rate_tilde_mop,1,length(range_mop))
+} 
+
+for (i in fips_names_pmq){
+  
+  # get index for element in vector
+  j = which(1*(fips_names_pmq == i) == 1)
+  
+  # get treatment date for each state
+  treatments_pmq_cty = unique(
+    df_pmq[df_pmq$fips == i,]$first_treatment_pmq
+    )
+  
+  # create a range around the date of treatment
+  range_pmq = (treatments_pmq_cty - window):(treatments_pmq_cty + window)
+  
+  # obtain the effects of the counties in each period
+  avg_effects_pmq_cty <- df_pmq[(df_pmq$fips == i)&(df_pmq$time_marker %in% range_pmq),] 
+  avg_effects_pmq_cty <- avg_effects_pmq_cty[order(avg_effects_pmq_cty$time_marker),]
+  
+  # same provision as before
+  len_range = length(range_pmq)
+  len_effects = length(avg_effects_pmq_state$avg)
+  
+  if (len_effects == len_range){
+    effects_pmq_cty[j,] <- matrix(
+      avg_effects_pmq_cty$unem_rate_tilde_mop,
+      1,
+      len_range) 
+  } else {
+    late_adopters <- rep(NaN,len_range)
+    late_adopters[1:len_effects] <- avg_effects_pmq_cty$unem_rate_tilde_mop
+    effects_pmq_cty[j,] <- matrix(
+      late_adopters,
+      1,
+      len_range)
+  }
+  
+  #effects_pmq_cty[j,] <- matrix(avg_effects_pmq_cty$unem_rate_tilde_pmq,1,length(range_pmq))
 } 
 
 # Find which states were above the median min wage when PDMP passed
@@ -180,20 +286,36 @@ first_ts = matrix(0,length(unique(df_mop$state)),4)
 
 for (i in unique(df_mop$state)){
   j = which(1*(state_names_mop == i) == 1)
-  first_ts[j,1] <- unique(df_mop[df_mop$state == i,]$first_treatment_mop)
-  first_ts[j,2] <- (first_ts[j,1] - unique(df_mop[(df_mop$state == i)&(df_mop$time_marker == first_ts[j,1]),]$mop_month))/12 + 1960
-  first_ts[j,3] <- unique(df_mop[(df_mop$state == i)&(df_mop$time_marker == first_ts[j,1]),]$minw)
-  first_ts[j,4] <- median(df_mop[df_mop$time_marker == first_ts[j,1],]$minw)
+  
+  first_ts[j,1] <- unique(
+    df_mop[df_mop$state == i,]$first_treatment_mop
+    )
+  
+  first_ts[j,2] <- (
+    first_ts[j,1] - unique(
+      df_mop[(df_mop$state == i)&(df_mop$time_marker == first_ts[j,1]),]$mop_month
+      )
+    )/12 + 1960
+  
+  first_ts[j,3] <- unique(
+    df_mop[(df_mop$state == i)&(df_mop$time_marker == first_ts[j,1]),]$minw
+    )
+  
+  first_ts[j,4] <- median(
+    df_mop[df_mop$time_marker == first_ts[j,1],]$minw
+    )
+
 }
+
 first_ts <- as.data.frame(first_ts)
 first_ts <- first_ts |> mutate(above = 1*(V3 > V4))
 
 below_med_states <- state_names_mop[which(first_ts$above == 0)]
 above_med_states <- state_names_mop[which(first_ts$above == 1)]
 
-# Split
-effects_mop_below_mw <- effects_mop[state_names_mop %in% below_med_states,]
-effects_mop_above_mw <- effects_mop[state_names_mop %in% above_med_states,]
+# Split the sample accordingly
+effects_mop_below_mw <- effects_mop_state[state_names_mop %in% below_med_states,]
+effects_mop_above_mw <- effects_mop_state[state_names_mop %in% above_med_states,]
 
 effects_pmq_below_mw <- effects_pmq[state_names_pmq %in% below_med_states,]
 effects_pmq_above_mw <- effects_pmq[state_names_pmq %in% above_med_states,]
@@ -276,11 +398,6 @@ g_plot1
 # Split states by distribution of Kaitz p indices
 kaitz_matrices <- vector("list", length = 5)
 
-fips_names_mop <- matrix(
-  unique(df_mop$fips),
-  length(unique(df_mop$fips)),
-  1
-)
 
 names(kaitz_matrices) <- c("kaitz_pct10_matrix", 
                            "kaitz_pct25_matrix", 
@@ -401,33 +518,10 @@ below_med_cts_pct90 <- fips_names_mop[which(kaitz_pct90_df$above == 0)]
 above_med_cts_pct90 <- fips_names_mop[which(kaitz_pct90_df$above == 1)]
 
 
-effects_mop_cty <- matrix(
-  0,
-  length(unique(df$fips)),
-  2*window+1
-)
-
-constants_mop_cty <- matrix(
-  0,
-  length(unique(df$fips)),
-  1
-)
 
 
-for (i in unique(df_mop$fips)){
-  
-  j = which(1*(fips_names_mop == i) == 1)
-  
-  constants_mop_cty[j] = unique(df_mop[df_mop$fips == i,]$first_treatment_mop)
-  
-  range_mop = (constants_mop_cty[j] - window):(constants_mop_cty[j] + window)
-  
-  avg_effects_mop_cty <- df_mop[(df_mop$fips == i)&(df_mop$time_marker %in% range_mop),] |>
-    dplyr::group_by(time_marker) |>
-    summarise(avg = mean(unem_rate_tilde_mop, na.rm = T))
-  
-  effects_mop_cty[j,] <- matrix(avg_effects_mop_cty$avg,1,length(range_mop))
-} 
+
+
 
 # Split
 effects_mop_below_mw_pct10 <- effects_mop_cty[fips_names_mop %in% below_med_cts_pct10,]
