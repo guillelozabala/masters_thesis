@@ -114,7 +114,24 @@ fips_names_mop <- unique(df_mop$fips)
 fips_names_pmq <- unique(df_pmq$fips)
 
 # For minimum wage comparisons
-above_below_minw = empty_matrix(length(state_names_mop),4)
+above_below_minw_mop = empty_matrix(length(state_names_mop),4)
+above_below_minw_pmq = empty_matrix(length(state_names_pmq),4)
+
+# Initialize lists
+kaitz_matrices_mop <- vector("list", length = 5)
+kaitz_matrices_pmq <- vector("list", length = 5)
+
+names(kaitz_matrices_mop) <- c("kaitz_pct10_mop_matrix", 
+                               "kaitz_pct25_mop_matrix", 
+                               "kaitz_median_mop_matrix", 
+                               "kaitz_pct75_mop_matrix", 
+                               "kaitz_pct90_mop_matrix")
+
+names(kaitz_matrices_pmq) <- c("kaitz_pct10_pmq_matrix", 
+                               "kaitz_pct25_pmq_matrix", 
+                               "kaitz_median_pmq_matrix", 
+                               "kaitz_pct75_pmq_matrix", 
+                               "kaitz_pct90_pmq_matrix")
 
 # Obtain average effects by state
 for (i in state_names_mop){
@@ -283,65 +300,88 @@ for (i in fips_names_pmq){
 } 
 
 # Find which states were above the median min wage when PDMP passed
-
 for (i in state_names_mop){
   
   # get index for element in vector
   j = which(1*(state_names_mop == i) == 1)
   
   # get treatment date for each state
-  above_below_minw[j,1] <- unique(
+  above_below_minw_mop[j,1] <- unique(
     df_mop[df_mop$state == i,]$first_treatment_mop
     )
   
   # retrieve the year of treatment (this can be done way easier (?))
-  above_below_minw[j,2] <- (
-    above_below_minw[j,1] - unique(
-      df_mop[(df_mop$state == i)&(df_mop$time_marker == above_below_minw[j,1]),]$mop_month
+  above_below_minw_mop[j,2] <- (
+    above_below_minw_mop[j,1] - unique(
+      df_mop[(df_mop$state == i)&(df_mop$time_marker == above_below_minw_mop[j,1]),]$mop_month
       )
     )/12 + 1960
   
   # get minimum wage at treatment
-  above_below_minw[j,3] <- unique(
-    df_mop[(df_mop$state == i)&(df_mop$time_marker == above_below_minw[j,1]),]$minw
+  above_below_minw_mop[j,3] <- unique(
+    df_mop[(df_mop$state == i)&(df_mop$time_marker == above_below_minw_mop[j,1]),]$minw
     )
   
   # get the national medians at treatment
-  above_below_minw[j,4] <- median(
-    df_mop[df_mop$time_marker == above_below_minw[j,1],]$minw
+  above_below_minw_mop[j,4] <- median(
+    df_mop[df_mop$time_marker == above_below_minw_mop[j,1],]$minw
     )
 
 }
 
-# As data frame
-above_below_minw <- as.data.frame(above_below_minw)
+for (i in state_names_pmq){
+  
+  # get index for element in vector
+  j = which(1*(state_names_pmq == i) == 1)
+  
+  # get treatment date for each state
+  above_below_minw_pmq[j,1] <- unique(
+    df_pmq[df_pmq$state == i,]$first_treatment_pmq
+  )
+  
+  # retrieve the year of treatment (this can be done way easier (?))
+  above_below_minw_pmq[j,2] <- (
+    above_below_minw_pmq[j,1] - unique(
+      df_pmq[(df_pmq$state == i)&(df_pmq$time_marker == above_below_minw_pmq[j,1]),]$pmq_month
+    )
+  )/12 + 1960
+  
+  # get minimum wage at treatment
+  above_below_minw_pmq[j,3] <- unique(
+    df_pmq[(df_pmq$state == i)&(df_pmq$time_marker == above_below_minw_pmq[j,1]),]$minw
+  )
+  
+  # get the national medians at treatment
+  above_below_minw_pmq[j,4] <- median(
+    df_pmq[df_pmq$time_marker == above_below_minw_pmq[j,1],]$minw
+  )
+  
+}
+
+# As dataframes
+above_below_minw_mop <- as.data.frame(above_below_minw_mop)
+above_below_minw_pmq <- as.data.frame(above_below_minw_pmq)
 
 # Get indicators
-above_below_minw <- above_below_minw |> mutate(above = 1*(V3 > V4))
+above_below_minw_mop <- above_below_minw_mop |> mutate(above = 1*(V3 > V4))
+above_below_minw_pmq <- above_below_minw_pmq |> mutate(above = 1*(V3 > V4))
 
 # Select the states
-below_med_states <- state_names_mop[which(above_below_minw$above == 0)]
-above_med_states <- state_names_mop[which(above_below_minw$above == 1)]
+below_med_states_mop <- state_names_mop[which(above_below_minw_mop$above == 0)]
+above_med_states_mop <- state_names_mop[which(above_below_minw_mop$above == 1)]
+
+below_med_states_pmq <- state_names_pmq[which(above_below_minw_pmq$above == 0)]
+above_med_states_pmq <- state_names_pmq[which(above_below_minw_pmq$above == 1)]
 
 # Split the sample accordingly
-effects_mop_below_mw <- effects_mop_state[state_names_mop %in% below_med_states,]
-effects_mop_above_mw <- effects_mop_state[state_names_mop %in% above_med_states,]
+effects_mop_below_mw <- effects_mop_state[state_names_mop %in% below_med_states_mop,]
+effects_mop_above_mw <- effects_mop_state[state_names_mop %in% above_med_states_mop,]
 
-effects_pmq_below_mw <- effects_pmq_state[state_names_pmq %in% below_med_states,]
-effects_pmq_above_mw <- effects_pmq_state[state_names_pmq %in% above_med_states,]
+effects_pmq_below_mw <- effects_pmq_state[state_names_pmq %in% below_med_states_pmq,]
+effects_pmq_above_mw <- effects_pmq_state[state_names_pmq %in% above_med_states_pmq,]
 
 # Split counties by distribution of Kaitz-p indices
-
-# Initialize list
-kaitz_matrices <- vector("list", length = 5)
-
-names(kaitz_matrices) <- c("kaitz_pct10_matrix", 
-                           "kaitz_pct25_matrix", 
-                           "kaitz_median_matrix", 
-                           "kaitz_pct75_matrix", 
-                           "kaitz_pct90_matrix")
-
-for (kma in names(kaitz_matrices)){
+for (kma in names(kaitz_matrices_mop)){
   
   # fill the list with initialized matrices  
   kaitz_values <- empty_matrix(length(fips_names_mop),4)
@@ -373,7 +413,7 @@ for (kma in names(kaitz_matrices)){
     # get kaitz percentile at treatment
     kaitz_pct_treat <- df_mop[(df_mop$fips == i)&(df_mop$time_marker == kaitz_values[j,1]),] |>
       select(
-        sub("_matrix$", "", kma)
+        sub("_mop_matrix$", "", kma)
       )
     
     if (length(unique(kaitz_pct_treat[[1]])) > 0) {
@@ -386,7 +426,7 @@ for (kma in names(kaitz_matrices)){
     # get national median of kaitz percentile at treatment
     kaitz_pct_treat_nac <- df_mop[df_mop$time_marker == kaitz_values[j,1],] |> 
       select(
-        sub("_matrix$", "", kma)
+        sub("_mop_matrix$", "", kma)
       )
     
     kaitz_values[j,4] <- kaitz_pct_treat_nac[[1]] |> 
@@ -394,252 +434,182 @@ for (kma in names(kaitz_matrices)){
     
   }
   
-  kaitz_matrices[[kma]] <- kaitz_values
+  kaitz_matrices_mop[[kma]] <- kaitz_values
+  
+}
+
+# pruedf <- df_mop[df_mop$time_marker == 556,] |> select(sub("_mop_matrix$", "", "kaitz_pct10_mop_matrix")) 
+# pruedf[[1]] |> median(na.rm = T)
+
+for (kma in names(kaitz_matrices_pmq)){
+  
+  # fill the list with initialized matrices  
+  kaitz_values <- empty_matrix(length(fips_names_pmq),4)
+  
+  for (i in fips_names_pmq){
+    
+    # get index for element in vector
+    j = which(1*(fips_names_pmq == i) == 1)
+    
+    # get treatment date for each state
+    kaitz_values[j,1] <- unique(
+      df_pmq[df_pmq$fips == i,]$first_treatment_pmq
+    )
+    
+    # retrieve the year of treatment (this can be done way easier (?))
+    year_treatment <- (
+      kaitz_values[j,1] - unique(
+        df_pmq[(df_pmq$fips == i)&(df_pmq$time_marker == kaitz_values[j,1]),]$pmq_month
+      )
+    )/12 + 1960
+    
+    if (length(year_treatment) > 0) {
+      kaitz_values[j,2] <- year_treatment
+    } else {
+      kaitz_values[j,2] = NaN
+      print("Replacement vector is empty. NA assignment performed.")
+    } #CHECK
+    
+    # get kaitz percentile at treatment
+    kaitz_pct_treat <- df_pmq[(df_pmq$fips == i)&(df_pmq$time_marker == kaitz_values[j,1]),] |>
+      select(
+        sub("_pmq_matrix$", "", kma)
+      )
+    
+    if (length(unique(kaitz_pct_treat[[1]])) > 0) {
+      kaitz_values[j,3] <- unique(kaitz_pct_treat[[1]])
+    } else {
+      kaitz_values[j,3] = NaN
+      print("Replacement vector is empty. NA assignment performed.")
+    }
+    
+    # get national median of kaitz percentile at treatment
+    kaitz_pct_treat_nac <- df_pmq[df_pmq$time_marker == kaitz_values[j,1],] |> 
+      select(
+        sub("_pmq_matrix$", "", kma)
+      )
+    
+    kaitz_values[j,4] <- kaitz_pct_treat_nac[[1]] |> 
+      median(na.rm = T)
+    
+  }
+  
+  kaitz_matrices_pmq[[kma]] <- kaitz_values
   
 }
 
 
+# Combine matrices and corresponding data frames into lists
+kaitz_matrices_list <- list(kaitz_matrices_mop, kaitz_matrices_pmq)
+kaitz_df_names <- c("kaitz_pct10_mop_df", 
+                    "kaitz_pct25_mop_df", 
+                    "kaitz_median_mop_df", 
+                    "kaitz_pct75_mop_df", 
+                    "kaitz_pct90_mop_df")
 
+# Iterate over each list of matrices
+for (kaitz_matrices in kaitz_matrices_list) {
+  # Iterate over each matrix in the list
+  for (kma in names(kaitz_matrices)) {
+    # Assign the matrix to its corresponding data frame
+    assign(sub("_matrix$", "_df", kma), as.data.frame(kaitz_matrices[[kma]]))
+  }
+}
+
+# Iterate over each data frame and apply mutation
+for (kaitz_df_name in kaitz_df_names) {
+  # Extract the data frame object
+  kaitz_df <- get(kaitz_df_name)
+  
+  # Apply mutation
+  kaitz_df <- kaitz_df |>
+    as.data.frame() |> 
+    mutate(above = 1 * (V3 > V4))
+  
+  # Assign the modified data frame back to the global environment
+  assign(kaitz_df_name, kaitz_df)
+}
+
+below_med_cts_mop_pct10 <- fips_names_mop[which(kaitz_pct10_mop_df$above == 0)] 
+above_med_cts_mop_pct10 <- fips_names_mop[which(kaitz_pct10_mop_df$above == 1)] #using set() maybe simplifies this?
+
+below_med_cts_mop_pct25 <- fips_names_mop[which(kaitz_pct25_mop_df$above == 0)]
+above_med_cts_mop_pct25 <- fips_names_mop[which(kaitz_pct25_mop_df$above == 1)] # nor !%in%
+
+below_med_cts_mop_median <- fips_names_mop[which(kaitz_median_mop_df$above == 0)]
+above_med_cts_mop_median <- fips_names_mop[which(kaitz_median_mop_df$above == 1)]
+
+below_med_cts_mop_pct75 <- fips_names_mop[which(kaitz_pct75_mop_df$above == 0)]
+above_med_cts_mop_pct75 <- fips_names_mop[which(kaitz_pct75_mop_df$above == 1)]
+
+below_med_cts_mop_pct90 <- fips_names_mop[which(kaitz_pct90_mop_df$above == 0)]
+above_med_cts_mop_pct90 <- fips_names_mop[which(kaitz_pct90_mop_df$above == 1)]
+
+# Split
+effects_mop_below_mw_pct10 <- effects_mop_cty[fips_names_mop %in% below_med_cts_mop_pct10,]
+effects_mop_above_mw_pct10 <- effects_mop_cty[fips_names_mop %in% above_med_cts_mop_pct10,]
+
+effects_mop_below_mw_pct25 <- effects_mop_cty[fips_names_mop %in% below_med_cts_mop_pct25,]
+effects_mop_above_mw_pct25 <- effects_mop_cty[fips_names_mop %in% above_med_cts_mop_pct25,]
+
+effects_mop_below_mw_median <- effects_mop_cty[fips_names_mop %in% below_med_cts_mop_median,]
+effects_mop_above_mw_median <- effects_mop_cty[fips_names_mop %in% above_med_cts_mop_median,]
+
+effects_mop_below_mw_pct75 <- effects_mop_cty[fips_names_mop %in% below_med_cts_mop_pct75,]
+effects_mop_above_mw_pct75 <- effects_mop_cty[fips_names_mop %in% above_med_cts_mop_pct75,]
+
+effects_mop_below_mw_pct90 <- effects_mop_cty[fips_names_mop %in% below_med_cts_mop_pct90,]
+effects_mop_above_mw_pct90 <- effects_mop_cty[fips_names_mop %in% above_med_cts_mop_pct90,]
+
+# Same for pmq
+below_med_cts_pmq_pct10 <- fips_names_pmq[which(kaitz_pct10_pmq_df$above == 0)] 
+above_med_cts_pmq_pct10 <- fips_names_pmq[which(kaitz_pct10_pmq_df$above == 1)] 
+
+below_med_cts_pmq_pct25 <- fips_names_pmq[which(kaitz_pct25_pmq_df$above == 0)]
+above_med_cts_pmq_pct25 <- fips_names_pmq[which(kaitz_pct25_pmq_df$above == 1)] 
+
+below_med_cts_pmq_median <- fips_names_pmq[which(kaitz_median_pmq_df$above == 0)]
+above_med_cts_pmq_median <- fips_names_pmq[which(kaitz_median_pmq_df$above == 1)]
+
+below_med_cts_pmq_pct75 <- fips_names_pmq[which(kaitz_pct75_pmq_df$above == 0)]
+above_med_cts_pmq_pct75 <- fips_names_pmq[which(kaitz_pct75_pmq_df$above == 1)]
+
+below_med_cts_pmq_pct90 <- fips_names_pmq[which(kaitz_pct90_pmq_df$above == 0)]
+above_med_cts_pmq_pct90 <- fips_names_pmq[which(kaitz_pct90_pmq_df$above == 1)]
+
+# Split
+effects_pmq_below_mw_pct10 <- effects_pmq_cty[fips_names_pmq %in% below_med_cts_pmq_pct10,]
+effects_pmq_above_mw_pct10 <- effects_pmq_cty[fips_names_pmq %in% above_med_cts_pmq_pct10,]
+
+effects_pmq_below_mw_pct25 <- effects_pmq_cty[fips_names_pmq %in% below_med_cts_pmq_pct25,]
+effects_pmq_above_mw_pct25 <- effects_pmq_cty[fips_names_pmq %in% above_med_cts_pmq_pct25,]
+
+effects_pmq_below_mw_median <- effects_pmq_cty[fips_names_pmq %in% below_med_cts_pmq_median,]
+effects_pmq_above_mw_median <- effects_pmq_cty[fips_names_pmq %in% above_med_cts_pmq_median,]
+
+effects_pmq_below_mw_pct75 <- effects_pmq_cty[fips_names_pmq %in% below_med_cts_pmq_pct75,]
+effects_pmq_above_mw_pct75 <- effects_pmq_cty[fips_names_pmq %in% above_med_cts_pmq_pct75,]
+
+effects_pmq_below_mw_pct90 <- effects_pmq_cty[fips_names_pmq %in% below_med_cts_pmq_pct90,]
+effects_pmq_above_mw_pct90 <- effects_pmq_cty[fips_names_pmq %in% above_med_cts_pmq_pct90,]
 
 # Plots
 
-#Ilegible esto
-gplot_values <- as_tibble(cbind(-window:window,
-                                colMeans(effects_mop_below_mw,na.rm=T),
-                                sapply(
-                                  1:(2*window+1),
-                                  function(x){
-                                    sd(effects_mop_below_mw[,x], na.rm = T)/sqrt(length(effects_mop_below_mw[,x]))
-                                    }
-                                  ),
-                                colMeans(effects_mop_above_mw,na.rm=T),
-                                sapply(
-                                  1:(2*window+1),
-                                  function(x){
-                                    sd(effects_mop_above_mw[,x],na.rm = T)/sqrt(length(effects_mop_above_mw[,x]))
-                                    }
-                                  )
-                                )
-                          )
+source(paste(getwd(), "data/plots.R", sep = "/"))
+state_plot(effects_mop_below_mw,effects_mop_above_mw,window,"mop")
+state_plot(effects_pmq_below_mw,effects_pmq_above_mw,window,"pmq")
 
-gplot_values <- cbind(gplot_values,
-                      gplot_values[["V2"]] - 1.96*gplot_values[["V3"]],
-                      gplot_values[["V2"]] + 1.96*gplot_values[["V3"]],
-                      gplot_values[["V4"]] - 1.96*gplot_values[["V5"]],
-                      gplot_values[["V4"]] + 1.96*gplot_values[["V5"]])
+county_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10")
+county_plot(effects_pmq_below_mw_pct10,effects_pmq_above_mw_pct10,window,"pmq","0.10")
 
-gplot_values <- gplot_values |>
-  rename(ci1 = 'gplot_values[["V2"]] - 1.96 * gplot_values[["V3"]]') |>
-  rename(ci2 = 'gplot_values[["V2"]] + 1.96 * gplot_values[["V3"]]') |>
-  rename(ci3 = 'gplot_values[["V4"]] - 1.96 * gplot_values[["V5"]]') |>
-  rename(ci4 = 'gplot_values[["V4"]] + 1.96 * gplot_values[["V5"]]') 
+county_plot(effects_mop_below_mw_pct25,effects_mop_above_mw_pct25,window,"mop","0.25")
+county_plot(effects_pmq_below_mw_pct25,effects_pmq_above_mw_pct25,window,"pmq","0.25")
 
-g_plot <- ggplot(gplot_values) + 
-  geom_line(aes(x=V1,y=V2),color = "#0098e9",linewidth=1) +
-  geom_line(aes(x=V1,y=ci1),color = "#0098e9",linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=ci2),color = "#0098e9", linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=V4),color = "#ff5ca8",linewidth=1) +
-  geom_line(aes(x=V1,y=ci3),color = "#ff5ca8", linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=ci4),color = "#ff5ca8",linetype=2,linewidth=1) +
-  ylab("Effect on unemployment rate") +
-  xlab("Period relative to treatment") + 
-  labs(title="Effect of Modern System PDMPs on unemployment rates,<br>for counties with minimum wage <span style='color:#0098e9;'>below</span> and <span style='color:#ff5ca8;'>above</span> the median<br>at t=0") +
-  geom_hline(yintercept = 0, linetype=5, color= "Black", linewidth=0.5) +
-  geom_vline(xintercept = 0, linetype=5, color= "Black", linewidth=0.5)
-g_plot <- g_plot + theme_classic() + theme(text = element_text(size=16, family="serif"),plot.title = element_markdown(lineheight = 1.1)) 
-g_plot
+county_plot(effects_mop_below_mw_median,effects_mop_above_mw_median,window,"mop","0.50")
+county_plot(effects_pmq_below_mw_median,effects_pmq_above_mw_median,window,"pmq","0.50")
 
+county_plot(effects_mop_below_mw_pct75,effects_mop_above_mw_pct75,window,"mop","0.75")
+county_plot(effects_pmq_below_mw_pct75,effects_pmq_above_mw_pct75,window,"pmq","0.75")
 
-
-gplot_values1 <- as_tibble(cbind(-window:window,
-                                 colMeans(effects_pmq_below_mw,na.rm=T),
-                                 sapply(1:(2*window+1),function(x){sd(effects_pmq_below_mw[,x],na.rm = T)/sqrt(length(effects_pmq_below_mw[,x]))}),
-                                 colMeans(effects_pmq_above_mw,na.rm=T),
-                                 sapply(1:(2*window+1),function(x){sd(effects_pmq_above_mw[,x],na.rm = T)/sqrt(length(effects_pmq_above_mw[,x]))})))
-
-gplot_values1 <- cbind(gplot_values1,
-                       gplot_values1[["V2"]] - 1.96*gplot_values1[["V3"]],
-                       gplot_values1[["V2"]] + 1.96*gplot_values1[["V3"]],
-                       gplot_values1[["V4"]] - 1.96*gplot_values1[["V5"]],
-                       gplot_values1[["V4"]] + 1.96*gplot_values1[["V5"]])
-
-gplot_values1 <- gplot_values1 |>
-  rename(ci1 = 'gplot_values1[["V2"]] - 1.96 * gplot_values1[["V3"]]') |>
-  rename(ci2 = 'gplot_values1[["V2"]] + 1.96 * gplot_values1[["V3"]]') |>
-  rename(ci3 = 'gplot_values1[["V4"]] - 1.96 * gplot_values1[["V5"]]') |>
-  rename(ci4 = 'gplot_values1[["V4"]] + 1.96 * gplot_values1[["V5"]]') 
-
-g_plot1 <- ggplot(gplot_values1) + 
-  geom_line(aes(x=V1,y=V2),color = "#0098e9",linewidth=1) +
-  geom_line(aes(x=V1,y=ci1),color = "#0098e9",linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=ci2),color = "#0098e9", linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=V4),color = "#ff5ca8",linewidth=1) +
-  geom_line(aes(x=V1,y=ci3),color = "#ff5ca8", linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=ci4),color = "#ff5ca8",linetype=2,linewidth=1) +
-  ylab("Effect on unemployment rate") +
-  xlab("Period relative to treatment") +  
-  labs(title="Effect of Must Query PDMPs on unemployment rates,<br>for counties with minimum wage <span style='color:#0098e9;'>below</span> and <span style='color:#ff5ca8;'>above</span> the median<br>at t=0") +
-  geom_hline(yintercept = 0, linetype=5, color= "Black", linewidth=0.5) +
-  geom_vline(xintercept = 0, linetype=5, color= "Black", linewidth=0.5)
-g_plot1 <- g_plot1 + theme_classic() + theme(text = element_text(size=16, family="serif"),plot.title = element_markdown(lineheight = 1.1)) 
-
-g_plot1
-
-
-
-
-
-
-
-
-
-
-
-for (kma in names(kaitz_matrices)){
-  assign(sub("_matrix$", "_df", kma),kaitz_matrices[[kma]])
-}
-
-
-kaitz_pct10_df <- as.data.frame(kaitz_pct10_df)
-
-kaitz_pct10_df <- kaitz_pct10_df |> 
-  mutate(
-    above = 1*(V3 > V4)
-  )
-
-kaitz_pct25_df <- as.data.frame(kaitz_pct25_df)
-
-kaitz_pct25_df <- kaitz_pct25_df |> 
-  mutate(
-    above = 1*(V3 > V4)
-  )
-
-kaitz_median_df <- as.data.frame(kaitz_median_df)
-
-kaitz_median_df <- kaitz_median_df |> 
-  mutate(
-    above = 1*(V3 > V4)
-  )
-
-kaitz_pct75_df <- as.data.frame(kaitz_pct75_df)
-
-kaitz_pct75_df <- kaitz_pct75_df |> 
-  mutate(
-    above = 1*(V3 > V4)
-  )
-
-kaitz_pct90_df <- as.data.frame(kaitz_pct90_df)
-
-kaitz_pct90_df <- kaitz_pct90_df |> 
-  mutate(
-    above = 1*(V3 > V4)
-  )
-
-
-below_med_cts_pct10 <- fips_names_mop[which(kaitz_pct10_df$above == 0)]
-above_med_cts_pct10 <- fips_names_mop[which(kaitz_pct10_df$above == 1)]
-
-below_med_cts_pct25 <- fips_names_mop[which(kaitz_pct25_df$above == 0)]
-above_med_cts_pct25 <- fips_names_mop[which(kaitz_pct25_df$above == 1)]
-
-below_med_cts_median <- fips_names_mop[which(kaitz_median_df$above == 0)]
-above_med_cts_median <- fips_names_mop[which(kaitz_median_df$above == 1)]
-
-below_med_cts_pct75 <- fips_names_mop[which(kaitz_pct75_df$above == 0)]
-above_med_cts_pct75 <- fips_names_mop[which(kaitz_pct75_df$above == 1)]
-
-below_med_cts_pct90 <- fips_names_mop[which(kaitz_pct90_df$above == 0)]
-above_med_cts_pct90 <- fips_names_mop[which(kaitz_pct90_df$above == 1)]
-
-
-
-
-
-
-
-# Split
-effects_mop_below_mw_pct10 <- effects_mop_cty[fips_names_mop %in% below_med_cts_pct10,]
-effects_mop_above_mw_pct10 <- effects_mop_cty[fips_names_mop %in% above_med_cts_pct10,]
-
-effects_mop_below_mw_pct25 <- effects_mop_cty[fips_names_mop %in% below_med_cts_pct25,]
-effects_mop_above_mw_pct25 <- effects_mop_cty[fips_names_mop %in% above_med_cts_pct25,]
-
-effects_mop_below_mw_median <- effects_mop_cty[fips_names_mop %in% below_med_cts_median,]
-effects_mop_above_mw_median <- effects_mop_cty[fips_names_mop %in% above_med_cts_median,]
-
-effects_mop_below_mw_pct75 <- effects_mop_cty[fips_names_mop %in% below_med_cts_pct75,]
-effects_mop_above_mw_pct75 <- effects_mop_cty[fips_names_mop %in% above_med_cts_pct75,]
-
-effects_mop_below_mw_pct90 <- effects_mop_cty[fips_names_mop %in% below_med_cts_pct90,]
-effects_mop_above_mw_pct90 <- effects_mop_cty[fips_names_mop %in% above_med_cts_pct90,]
-
-# Plot
-gplot_values_pct10 <- as_tibble(cbind(-window:window,
-                                colMeans(effects_mop_below_mw_pct10,na.rm=T),
-                                sapply(1:(2*window+1),function(x){sd(effects_mop_below_mw_pct10[,x],na.rm = T)/sqrt(length(effects_mop_below_mw_pct10[,x]))}),
-                                colMeans(effects_mop_above_mw_pct10,na.rm=T),
-                                sapply(1:(2*window+1),function(x){sd(effects_mop_above_mw_pct10[,x],na.rm = T)/sqrt(length(effects_mop_above_mw_pct10[,x]))})))
-
-gplot_values_pct10 <- cbind(gplot_values_pct10,
-                      gplot_values_pct10[["V2"]] - 1.96*gplot_values_pct10[["V3"]],
-                      gplot_values_pct10[["V2"]] + 1.96*gplot_values_pct10[["V3"]],
-                      gplot_values_pct10[["V4"]] - 1.96*gplot_values_pct10[["V5"]],
-                      gplot_values_pct10[["V4"]] + 1.96*gplot_values_pct10[["V5"]])
-
-gplot_values_pct10 <- gplot_values_pct10 |>
-  rename(ci1 = 'gplot_values_pct10[["V2"]] - 1.96 * gplot_values_pct10[["V3"]]') |>
-  rename(ci2 = 'gplot_values_pct10[["V2"]] + 1.96 * gplot_values_pct10[["V3"]]') |>
-  rename(ci3 = 'gplot_values_pct10[["V4"]] - 1.96 * gplot_values_pct10[["V5"]]') |>
-  rename(ci4 = 'gplot_values_pct10[["V4"]] + 1.96 * gplot_values_pct10[["V5"]]') 
-
-g_plot_pct10 <- ggplot(gplot_values_pct10) + 
-  geom_line(aes(x=V1,y=V2),color = "#0098e9",linewidth=1) +
-  geom_line(aes(x=V1,y=ci1),color = "#0098e9",linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=ci2),color = "#0098e9", linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=V4),color = "#ff5ca8",linewidth=1) +
-  geom_line(aes(x=V1,y=ci3),color = "#ff5ca8", linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=ci4),color = "#ff5ca8",linetype=2,linewidth=1) +
-  ylab("Effect on unemployment rate") +
-  xlab("Period relative to treatment") + 
-  labs(title="Effect of Modern System PDMPs on unemployment rates,<br>for counties with minimum wage <span style='color:#0098e9;'>below</span> and <span style='color:#ff5ca8;'>above</span> the median<br>at t=0") +
-  geom_hline(yintercept = 0, linetype=5, color= "Black", linewidth=0.5) +
-  geom_vline(xintercept = 0, linetype=5, color= "Black", linewidth=0.5)
-g_plot_pct10 <- g_plot_pct10 + theme_classic() + theme(text = element_text(size=16, family="serif"),plot.title = element_markdown(lineheight = 1.1)) 
-g_plot_pct10
-
-
-
-
-
-gplot_values_pct25 <- as_tibble(cbind(-window:window,
-                                      colMeans(effects_mop_below_mw_pct25,na.rm=T),
-                                      sapply(1:(2*window+1),function(x){sd(effects_mop_below_mw_pct25[,x],na.rm = T)/sqrt(length(effects_mop_below_mw_pct25[,x]))}),
-                                      colMeans(effects_mop_above_mw_pct25,na.rm=T),
-                                      sapply(1:(2*window+1),function(x){sd(effects_mop_above_mw_pct25[,x],na.rm = T)/sqrt(length(effects_mop_above_mw_pct25[,x]))})))
-
-gplot_values_pct25 <- cbind(gplot_values_pct25,
-                            gplot_values_pct25[["V2"]] - 1.96*gplot_values_pct25[["V3"]],
-                            gplot_values_pct25[["V2"]] + 1.96*gplot_values_pct25[["V3"]],
-                            gplot_values_pct25[["V4"]] - 1.96*gplot_values_pct25[["V5"]],
-                            gplot_values_pct25[["V4"]] + 1.96*gplot_values_pct25[["V5"]])
-
-gplot_values_pct25 <- gplot_values_pct25 |>
-  rename(ci1 = 'gplot_values_pct25[["V2"]] - 1.96 * gplot_values_pct25[["V3"]]') |>
-  rename(ci2 = 'gplot_values_pct25[["V2"]] + 1.96 * gplot_values_pct25[["V3"]]') |>
-  rename(ci3 = 'gplot_values_pct25[["V4"]] - 1.96 * gplot_values_pct25[["V5"]]') |>
-  rename(ci4 = 'gplot_values_pct25[["V4"]] + 1.96 * gplot_values_pct25[["V5"]]') 
-
-g_plot_pct25 <- ggplot(gplot_values_pct25) + 
-  geom_line(aes(x=V1,y=V2),color = "#0098e9",linewidth=1) +
-  geom_line(aes(x=V1,y=ci1),color = "#0098e9",linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=ci2),color = "#0098e9", linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=V4),color = "#ff5ca8",linewidth=1) +
-  geom_line(aes(x=V1,y=ci3),color = "#ff5ca8", linetype=2,linewidth=1) +
-  geom_line(aes(x=V1,y=ci4),color = "#ff5ca8",linetype=2,linewidth=1) +
-  ylab("Effect on unemployment rate") +
-  xlab("Period relative to treatment") + 
-  labs(title="Effect of Modern System PDMPs on unemployment rates,<br>for counties with minimum wage <span style='color:#0098e9;'>below</span> and <span style='color:#ff5ca8;'>above</span> the median<br>at t=0") +
-  geom_hline(yintercept = 0, linetype=5, color= "Black", linewidth=0.5) +
-  geom_vline(xintercept = 0, linetype=5, color= "Black", linewidth=0.5)
-g_plot_pct25 <- g_plot_pct25 + theme_classic() + theme(text = element_text(size=16, family="serif"),plot.title = element_markdown(lineheight = 1.1)) 
-g_plot_pct25
+county_plot(effects_mop_below_mw_pct90,effects_mop_above_mw_pct90,window,"mop","0.90")
+county_plot(effects_pmq_below_mw_pct90,effects_pmq_above_mw_pct90,window,"pmq","0.90")

@@ -1,13 +1,15 @@
 
+# CLEAN, COMMENT
+
 rm(list=ls()) 
 set.seed(123)
 
 library(tidyverse)
 
-# Set path, load the data
-
+# Set path
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
+# Load the data
 unemp_rate <- read.csv(
   file.path(getwd(), "unemployment_rate.csv"), 
   header = TRUE,
@@ -59,7 +61,6 @@ demographics <- read.csv(
 # PDMPs
 
 ## Divide months and years in PDMPs dataset
-
 horwitz <- horwitz |> 
   separate_wider_delim(
     Enactment,
@@ -95,8 +96,7 @@ horwitz <- horwitz |>
     list(~na_if(.,""))
     ) 
 
-## Numeric values, select the policies
-
+## Numeric values
 horwitz$enact_month <- replace(
   horwitz$enact_month,
   horwitz$enact_month == "Pre",
@@ -108,12 +108,11 @@ horwitz[,2:length(horwitz)] <- sapply(
   as.numeric
   )
 
+## Select the policies
 PDMPs_columns <- c("state", "pmq_year", "pmq_month", "mop_year", "mop_month")
-
 horwitz <- horwitz[PDMPs_columns]
 
 ## Add time markers
-
 horwitz <- horwitz |> 
   mutate(
     first_treatment_pmq = (pmq_year-1960)*12 + pmq_month
@@ -159,8 +158,7 @@ labor_market_clean <- purrr::map(
 names(labor_market_clean) <- c("unemp_rate",
                                "unemp",
                                "emp",
-                               "lab_force"
-                               )
+                               "lab_force")
 
 # Minimum Wage
 
@@ -187,8 +185,6 @@ minwage <- rbind(
   minwage,
   missing_minw
   ) 
-
-
 
 # Demographics
 
@@ -233,8 +229,8 @@ df <- merge(
     "county",
     "state",
     "time_marker"
-  )
-) 
+    )
+  ) 
 
 df <- merge(
   df,
@@ -249,8 +245,8 @@ df <- merge(
     "county",
     "state",
     "time_marker"
-  )
-) 
+    )
+  ) 
 
 df <- merge(
   df,
@@ -284,7 +280,7 @@ df <- merge(
     "year"
   ),
   all = T
-)
+  )
 
 # take logs
 df <- df |>
