@@ -12,6 +12,10 @@ library(tidyverse)
 library(fixest)
 library(ggtext)
 
+# Auxiliary functions
+source(paste(getwd(), "data/utilities.R", sep = "/"))
+source(paste(getwd(), "data/plots.R", sep = "/"))
+
 # One-side length of effects considered
 window = 24 # two years
 
@@ -183,18 +187,18 @@ df[["lab_force_tilde_pmq"]] <- df[["lab_force"]] - df[["lab_force_hat_pmq"]]
 df_mop <- df[!is.na(df$first_treatment_mop),]
 df_pmq <- df[!is.na(df$first_treatment_pmq),]
 
-# Initialize matrices
-empty_array <- function(rows, columns, slices) {
-  array(NA, c(rows, columns, slices))
-}
+# # Initialize matrices
+# empty_array <- function(rows, columns, slices) {
+#   array(NA, c(rows, columns, slices))
+# }
 
-# Average effects on each state
-effects_mop_state <- empty_array(length(unique(df$state)), 2*window+1, 4) 
-effects_pmq_state <- empty_array(length(unique(df$state)), 2*window+1, 4)
-
-# Effects on each county
-effects_mop_cty <- empty_array(length(unique(df$fips)), 2*window+1, 4)
-effects_pmq_cty <- empty_array(length(unique(df$fips)), 2*window+1, 4)
+# # Average effects on each state
+# effects_mop_state <- empty_array(length(unique(df$state)), 2*window+1, 4) 
+# effects_pmq_state <- empty_array(length(unique(df$state)), 2*window+1, 4)
+# 
+# # Effects on each county
+# effects_mop_cty <- empty_array(length(unique(df$fips)), 2*window+1, 4)
+# effects_pmq_cty <- empty_array(length(unique(df$fips)), 2*window+1, 4)
 
 # States considered
 state_names <- unique(df$state)
@@ -206,9 +210,9 @@ fips_names <- unique(df$fips)
 fips_names_mop <- unique(df_mop$fips)
 fips_names_pmq <- unique(df_pmq$fips)
 
-# For minimum wage comparisons (to arrays too?)
-above_below_minw_mop = matrix(0,length(state_names_mop),4)
-above_below_minw_pmq = matrix(0,length(state_names_pmq),4)
+# # For minimum wage comparisons (to arrays too?)
+# above_below_minw_mop = matrix(0,length(state_names_mop),4)
+# above_below_minw_pmq = matrix(0,length(state_names_pmq),4)
 
 # Initialize lists
 kaitz_matrices_mop <- vector("list", length = 5)
@@ -227,8 +231,6 @@ names(kaitz_matrices_pmq) <- c("kaitz_pct10_pmq_matrix",
                                "kaitz_pct90_pmq_matrix")
 
 
-source(paste(getwd(), "data/utilities.R", sep = "/"))
-
 pol_mop = "mop"
 pol_pmq = "pmq"
 
@@ -238,8 +240,13 @@ effects_pmq_state = f_state_avg_effects(df = df,policy = pol_pmq,window = window
 effects_mop_cty = f_county_effects(df = df,policy = pol_mop,window = window)
 effects_pmq_cty = f_county_effects(df = df,policy = pol_pmq,window = window)
 
-f_states_above_below(df=df,pol=pol_mop)
+above_below_minw_mop = f_states_above_below(df=df,pol=pol_mop)
+above_below_minw_pmq = f_states_above_below(df=df,pol=pol_pmq)
 
+f_county_kaitz(df=df,pol=pol_mop)
+
+kaitz_matrices_mop = f_county_kaitz(df=df,pol=pol_mop)
+kaitz_matrices_pmq = f_county_kaitz(df=df,pol=pol_pmq)
 
 # As dataframes
 above_below_minw_mop <- as.data.frame(above_below_minw_mop)
@@ -262,6 +269,8 @@ effects_mop_above_mw <- effects_mop_state[state_names_mop %in% above_med_states_
 
 effects_pmq_below_mw <- effects_pmq_state[state_names_pmq %in% below_med_states_pmq,,]
 effects_pmq_above_mw <- effects_pmq_state[state_names_pmq %in% above_med_states_pmq,,]
+
+
 
 # Split counties by distribution of Kaitz-p indices
 for (kma in names(kaitz_matrices_mop)){
@@ -327,8 +336,6 @@ for (kma in names(kaitz_matrices_mop)){
   
 }
 
-# pruedf <- df_mop[df_mop$time_marker == 556,] |> select(sub("_mop_matrix$", "", "kaitz_pct10_mop_matrix")) 
-# pruedf[[1]] |> median(na.rm = T)
 
 for (kma in names(kaitz_matrices_pmq)){
   
@@ -490,7 +497,6 @@ effects_pmq_above_mw_pct90 <- effects_pmq_cty[fips_names_pmq %in% above_med_cts_
 
 # Plots
 
-source(paste(getwd(), "data/plots.R", sep = "/"))
 state_plot(effects_mop_below_mw,effects_mop_above_mw,window,"mop","unemployment rate")
 state_plot(effects_pmq_below_mw,effects_pmq_above_mw,window,"pmq","unemployment rate")
 

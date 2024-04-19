@@ -228,3 +228,106 @@ f_states_above_below <- function(df,policy){
 }
 
 
+f_county_kaitz <- function(df,policy){
+  
+  kaitz_matrices <- vector("list", length = 5)
+  
+  if (policy == "mop"){
+    names(kaitz_matrices) <- c("kaitz_pct10_mop_matrix", "kaitz_pct25_mop_matrix", 
+                               "kaitz_median_mop_matrix", "kaitz_pct75_mop_matrix", 
+                               "kaitz_pct90_mop_matrix")
+    df0 <- df[!is.na(df$first_treatment_mop),]
+  } else if (policy == "pmq"){
+    names(kaitz_matrices) <- c("kaitz_pct10_pmq_matrix", "kaitz_pct25_pmq_matrix", 
+                               "kaitz_median_pmq_matrix", "kaitz_pct75_pmq_matrix", 
+                               "kaitz_pct90_pmq_matrix")
+    df0 <- df[!is.na(df$first_treatment_pmq),]
+  } else {
+    print("Policy must be either mop or pmq")
+  }
+
+  fips_names0 <- unique(df0$fips)
+  
+  # Split counties by distribution of Kaitz-p indices
+  for (kma in names(kaitz_matrices)){
+    
+    # fill the list with initialized matrices  
+    kaitz_values <- matrix(0,length(fips_names0),4)
+    
+    for (i in fips_names0){
+      
+      # get index for element in vector
+      j = which(1*(fips_names0 == i) == 1)
+      
+      # get treatment date for each county
+      if (policy == "mop"){
+        kaitz_values[j,1] = unique(
+          df0[df0$fips == i,]$first_treatment_mop
+        )
+      } else if (policy == "pmq"){
+        kaitz_values[j,1] = unique(
+          df0[df0$fips == i,]$first_treatment_pmq
+        )
+      }
+      
+      at_treatment <- df0[(df0$fips == i)&(df0$time_marker == kaitz_values[j,1]),]
+      
+      # get treatment year for each county
+      year_treatment <- unique(
+        at_treatment$year
+      )
+      
+      if (length(year_treatment) > 0) {
+        kaitz_values[j,2] <- year_treatment
+      } else {
+        kaitz_values[j,2] = NaN
+      }
+      
+      # get kaitz percentile at treatment
+      if (policy == "mop"){
+        kaitz_pct_treat <- at_treatment |>
+          select(
+            sub("_mop_matrix$", "", kma)
+          )
+      } else if (policy == "pmq"){
+        kaitz_pct_treat <- at_treatment |>
+          select(
+            sub("_pmq_matrix$", "", kma)
+          )
+      }
+      
+      kaitz_pct_treat <- unique(kaitz_pct_treat[[1]])
+      
+      if (length(kaitz_pct_treat) > 0) {
+        kaitz_values[j,3] <- kaitz_pct_treat
+      } else {
+        kaitz_values[j,3] = NaN
+      }
+      
+      # get national median of kaitz percentile at treatment
+      if (policy == "mop"){
+        kaitz_pct_treat_nac <- df0[df0$time_marker == kaitz_values[j,1],] |> 
+          select(
+            sub("_mop_matrix$", "", kma)
+          )
+      } else if (policy == "pmq"){
+        kaitz_pct_treat_nac <- df0[df0$time_marker == kaitz_values[j,1],] |> 
+          select(
+            sub("_pmq_matrix$", "", kma)
+          )
+      }
+      
+      kaitz_values[j,4] <- kaitz_pct_treat_nac[[1]] |> 
+        median(na.rm = T)
+      
+    }
+    
+    kaitz_matrices[[kma]] <- kaitz_values
+    
+  }
+  
+  return(kaitz_matrices)
+  
+}
+
+

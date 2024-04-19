@@ -19,7 +19,7 @@ spark = SparkSession.builder.appName('demographics').getOrCreate()
 
 ### read the data
 
-demo_data = spark.read.text(r'./us_1990_2020_19ages_adjusted.txt')
+demo_data = spark.read.text(r'./data/demographics/us_1990_2020_19ages_adjusted.txt')
 
 ### obtain variables from txt file (see https://seer.cancer.gov/popdata/popdic.html for reference)
 
@@ -268,4 +268,4 @@ for i in range(19):
 
 ### save the dataset
 
-demo_data.toPandas().to_csv(r'./county_demographics.csv',sep=',',index=False)
+demo_data.toPandas().to_csv(r'./data/demographics/county_demographics.csv',sep=',',index=False)

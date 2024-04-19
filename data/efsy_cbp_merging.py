@@ -17,7 +17,7 @@ os.environ["JAVA_HOME"] = 'C:\Program Files\Java\jre-1.8'
 spark = SparkSession.builder.appName('sectors').getOrCreate()
 
 # Get a list of all CSV files in the current folder except 'combined_data_three_naics.csv' and 'combined_data_four_naics.csv'
-csv_files = [file.replace('sector_composition\\', '') for file in glob.glob(r'sector_composition/*.csv')]
+csv_files = [file.replace('sector_composition\\', '') for file in glob.glob(r'./data/sector_composition/*.csv')]
 csv_files.pop(csv_files.index('combined_data_three_naics.csv'))
 csv_files.pop(csv_files.index('combined_data_four_naics_02to05.csv'))
 csv_files.pop(csv_files.index('combined_data_four_naics_06to10.csv'))
@@ -117,12 +117,12 @@ for file in csv_files:
 
 combined_data_4d.filter(
     (F.col('year') > 2001) & (F.col('year') < 2006)
-    ).toPandas().to_csv(r'./sector_composition/combined_data_four_naics_02to05.csv',sep=',',index=False) 
+    ).toPandas().to_csv(r'./data/sector_composition/combined_data_four_naics_02to05.csv',sep=',',index=False) 
 
 combined_data_4d.filter(
     (F.col('year') > 2005) & (F.col('year') < 2011)
-    ).toPandas().to_csv(r'./sector_composition/combined_data_four_naics_06to10.csv',sep=',',index=False) 
+    ).toPandas().to_csv(r'./data/sector_composition/combined_data_four_naics_06to10.csv',sep=',',index=False) 
 
 combined_data_4d.filter(
     F.col('year') > 2010
-    ).toPandas().to_csv(r'./sector_composition/combined_data_four_naics_11to16.csv',sep=',',index=False) 
+    ).toPandas().to_csv(r'./data/sector_composition/combined_data_four_naics_11to16.csv',sep=',',index=False) 
