@@ -5,8 +5,13 @@ returns minwage_clean_states_ub.csv and minwage_clean_fed_ub.csv
 '''
 
 import pandas as pd
+import os
 
-df = pd.read_csv(r'./minwage_raw.csv',sep=',') # see minwage.py
+abspath = os.path.realpath('minwage_cleaning.py')
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
+df = pd.read_csv(r'./data/minimum_wage/minwage_raw.csv',sep=',') # see minwage.py
 
 # drop non-relevant obs
 
@@ -78,7 +83,7 @@ df = df.melt(id_vars="State or otherjurisdiction",
         var_name="Year", 
         value_name="Value")
 
-df.to_csv(r'./minwage_clean_states_ub.csv',sep=',',index=False)
+df.to_csv(r'./data/minimum_wage/minwage_clean_states_ub.csv',sep=',',index=False)
 
 # Apply effective fed min wage
 
@@ -90,7 +95,7 @@ for i in df['Year'].unique():
     new_df = pd.concat([new_df,year_data])
 new_df = new_df.reset_index(drop=True)
 
-new_df.to_csv(r'./minwage_clean_fed_ub.csv',sep=',',index=False)
+new_df.to_csv(r'./data/minimum_wage/minwage_clean_fed_ub.csv',sep=',',index=False)
 
 # Notice
 

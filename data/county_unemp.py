@@ -6,8 +6,13 @@ employment_population_ratio.csv, labor_force_participation_rate.csv
 '''
 
 import pandas as pd
+import os
 
-df = pd.read_csv(r'./data/ladata64County.txt',sep="\t")
+abspath = os.path.realpath('county_unemp.py')
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
+df = pd.read_csv(r'./data/labor_market_outcomes/ladata64County.txt',sep="\t")
 df = df.drop('footnote_codes',axis=1)
 df = df.rename(columns={df.columns.values.tolist()[0]: 'series_id', df.columns.values.tolist()[1]: 'year',
                         df.columns.values.tolist()[2]: 'period', df.columns.values.tolist()[3]: 'value',})
@@ -41,7 +46,7 @@ MXX=Monthly, M13=Annual
 
 '''
 
-dfips = pd.read_csv(r'./data/county_fips_master.csv',encoding = "ISO-8859-1")
+dfips = pd.read_csv(r'./data/fips/county_fips_master.csv',encoding = "ISO-8859-1")
 dfips = dfips[['fips','county_name','state_abbr','state_name']]
 dfips['fips'] = dfips['fips'].astype(str).str.rjust(5,'0')
 
@@ -65,4 +70,4 @@ for k, i_df in df_dict.items():
     i_df = i_df.drop('county_fip',axis=1)
 
     i_df_final= i_df.merge(dfips, left_on='fips', right_on='fips')
-    i_df_final.to_csv(f'./data/{k}.csv',sep=',',index=False)
+    i_df_final.to_csv(f'./data/labor_market_outcomes/{k}.csv',sep=',',index=False)

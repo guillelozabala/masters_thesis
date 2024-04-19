@@ -1,5 +1,5 @@
 
-state_plot <- function(df1,df2,window,policy){
+state_plot <- function(df1,df2,window,policy,outcome){
   
   if (policy == "mop"){
     policy <- "Modern System PDMPs"
@@ -7,6 +7,22 @@ state_plot <- function(df1,df2,window,policy){
     policy <- "Must Query PDMPs"
   } else {
     print("Policy must be either mop or pmq")
+  }
+  
+  if (outcome == "unemployment rate"){
+    df1 <- df1[,,1]
+    df2 <- df2[,,1]
+  } else if (outcome == "unemployment"){
+    df1 <- df1[,,2]
+    df2 <- df2[,,2]
+  } else if (outcome == "employment"){
+    df1 <- df1[,,3]
+    df2 <- df2[,,3]
+  } else if (outcome == "labor force"){
+    df1 <- df1[,,4]
+    df2 <- df2[,,4]
+  } else {
+    print("Outcome must be either unemployment rate, unemployment, employment or labor force")
   }
 
   plot_range <- -window:window
@@ -79,7 +95,7 @@ state_plot <- function(df1,df2,window,policy){
       "Period relative to treatment"
     ) + 
     labs(
-      title = paste0("Effect of ", policy, " on unemployment rates,<br>for counties with minimum wage <span style='color:#0098e9;'>below</span> and <span style='color:#ff5ca8;'>above</span> the median<br>at t=0")
+      title = paste0("Effect of ", policy, " on ", outcome, "<br>for counties with minimum wage <span style='color:#0098e9;'>below</span> and <span style='color:#ff5ca8;'>above</span> the median<br>at t=0")
     ) +
     geom_hline(
       yintercept = 0, linetype = 5, color = "#000000", linewidth = 0.5
@@ -98,7 +114,7 @@ state_plot <- function(df1,df2,window,policy){
   
 }
 
-county_plot <- function(df1,df2,window,policy,percentile){
+county_plot <- function(df1,df2,window,policy,percentile,outcome){
   
   if (policy == "mop"){
     policy <- "Modern System PDMPs"
@@ -106,6 +122,22 @@ county_plot <- function(df1,df2,window,policy,percentile){
     policy <- "Must Query PDMPs"
   } else {
     print("Policy must be either mop or pmq")
+  }
+  
+  if (outcome == "unemployment rate"){
+    df1 <- df1[,,1]
+    df2 <- df2[,,1]
+  } else if (outcome == "unemployment"){
+    df1 <- df1[,,2]
+    df2 <- df2[,,2]
+  } else if (outcome == "employment"){
+    df1 <- df1[,,3]
+    df2 <- df2[,,3]
+  } else if (outcome == "labor force"){
+    df1 <- df1[,,4]
+    df2 <- df2[,,4]
+  } else {
+    print("Outcome must be either unemployment rate, unemployment, employment or labor force")
   }
   
   plot_range <- -window:window
@@ -178,7 +210,7 @@ county_plot <- function(df1,df2,window,policy,percentile){
       "Period relative to treatment"
     ) + 
     labs(
-      title = paste0("Effect of ", policy, " on unemployment rates,<br>for counties with Kaitz-", percentile ," index <span style='color:#0098e9;'>below</span> and <span style='color:#ff5ca8;'>above</span> the median<br>at t=0")
+      title = paste0("Effect of ", policy, " on ", outcome, ",<br>for counties with Kaitz-", percentile ," index <span style='color:#0098e9;'>below</span> and <span style='color:#ff5ca8;'>above</span> the median<br>at t=0")
     ) +
     geom_hline(
       yintercept = 0, linetype = 5, color = "#000000", linewidth = 0.5

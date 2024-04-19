@@ -7,6 +7,11 @@ returns minwage_raw.csv
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import os
+
+abspath = os.path.realpath('minwage.py')
+dname = os.path.dirname(abspath)
+os.chdir(dname)
 
 URL = "https://www.dol.gov/agencies/whd/state/minimum-wage/history"
 page = requests.get(URL)
@@ -42,4 +47,4 @@ states = df.iloc[:,0]
 df = df.drop('State or otherjurisdiction', axis=1)
 df = pd.concat([states,df],axis=1)
 
-df.to_csv(r'./minwage_raw.csv',sep=',',index=False)
+df.to_csv(r'./data/minimum_wage/minwage_raw.csv',sep=',',index=False)

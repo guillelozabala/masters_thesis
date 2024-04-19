@@ -15,13 +15,13 @@ setwd(dirname(file_location)) #set path to location
 
 # Load the data
 minwg <- read.csv(
-  paste(getwd(),"minwage_clean_fed_ub.csv",sep = "/"),
+  paste(getwd(),"minimum_wage/minwage_clean_fed_ub.csv",sep = "/"),
   header=TRUE,
   sep=","
   )
 
 ODD <- read.csv(
-  paste(getwd(),"OD_deaths_educ.csv",sep = "/"),
+  paste(getwd(),"drugs/OD_deaths_educ.csv",sep = "/"),
   header=TRUE,
   sep=","
   )

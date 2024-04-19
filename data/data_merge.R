@@ -11,37 +11,37 @@ setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
 # Load the data
 unemp_rate <- read.csv(
-  file.path(getwd(), "unemployment_rate.csv"), 
+  file.path(getwd(), "labor_market_outcomes/unemployment_rate.csv"), 
   header = TRUE,
   sep = ","
   )
 
 unemp <- read.csv(
-  file.path(getwd(), "unemployment.csv"),
+  file.path(getwd(), "labor_market_outcomes/unemployment.csv"),
   header = TRUE,
   sep = ","
   )
 
 emp <- read.csv(
-  file.path(getwd(), "employment.csv"),
+  file.path(getwd(), "labor_market_outcomes/employment.csv"),
   header = TRUE,
   sep = ","
   )
 
 lab_force <- read.csv(
-  file.path(getwd(), "labor_force.csv"),
+  file.path(getwd(), "labor_market_outcomes/labor_force.csv"),
   header = TRUE,
   sep = ","
   )
 
 horwitz <- read.csv(
-  file.path(getwd(), "horwitz2020.csv"),
+  file.path(getwd(), "pdmps/horwitz2020.csv"),
   header = TRUE,
   sep = ","
   )
 
 minwage <- read.csv(
-  file.path(getwd(), "minwage_clean_fed_ub.csv"),
+  file.path(getwd(), "minimum_wage/minwage_clean_fed_ub.csv"),
   header = TRUE,
   sep = ","
   )
