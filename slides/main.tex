@@ -112,6 +112,13 @@
     \itemize\addtolength{\itemsep}{10pt}
     }{\enditemize}
 
+% Enumerate environment
+\setbeamertemplate{enumerate items}[square]
+\setbeamercolor{item projected}{bg=fblu,fg=white}
+\newenvironment{wideenumerate}{
+    \enumerate\addtolength{\itemsep}{10pt}
+    }{\endenumerate}
+
 % Transition environment
 \newenvironment{transitionframe}{
   \setbeamercolor{background canvas}{bg=fblu}

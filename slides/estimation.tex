@@ -13,22 +13,61 @@
 
 \begin{frame}
 
+    \frametitle{Kaitz-\(\textcolor{fblu}{\text{\(\rho\)}}\) index} % Title
+    \framesubtitle{}  % Subtitle
+    \rmfamily % Font
+    
+    \begin{wideitemize}
+        \item Measure of minimum wage bindingness
+    \end{wideitemize}
+    
+    \begin{equation*}
+        \text{\textit{kaitz}}_{ct}(\rho) \equiv \log{w^{\text{\textit{min}}}_{ct}} - \log{w^{\rho}_{ct}}
+    \end{equation*}
+    with 
+    \begin{equation*}
+        w^{\rho}_{ct} = \sum_{i\in c} \dfrac{e_i}{E_c}\,w^{\rho}_{it} \quad\text{and}\quad w^{\rho}_{it} = \sum_{o\in i} \dfrac{e_o}{E_i}\,w^{\rho}_{oit}
+    \end{equation*}
+    and
+    \vspace{9pt}
+    \begin{wideitemize}
+        \item[\textcolor{fblu}{\textbullet}] \(\textcolor{fblu}{w^{\text{\textit{min}}}_{ct}}\): minimum wage in county \(\textcolor{fblu}{c}\) at time \(\textcolor{fblu}{t}\), \(\textcolor{fblu}{w^{\rho}_{ct}}\): wage percentile \(\textcolor{fblu}{\rho}\)
+        \item[\textcolor{fblu}{\textbullet}] \(\textcolor{fblu}{w^{\rho}_{cit}}\): wage percentile in occupation \(\textcolor{fblu}{o}\) in industry \(\textcolor{fblu}{i}\) at time \(\textcolor{fblu}{t}\) 
+        \item[\textcolor{fblu}{\textbullet}] \(\textcolor{fblu}{e_o}\): share of employment of occupation \(\textcolor{fblu}{o}\) in industry \(\textcolor{fblu}{i}\), \(\textcolor{fblu}{e_i}\): share of county employment in industry \(\textcolor{fblu}{i}\)
+    \end{wideitemize}
+    
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{Kaitz-\(\textcolor{fblu}{\text{\(\rho\)}}\) index} % Title
+    \framesubtitle{}  % Subtitle
+    \rmfamily % Font
+
+    \begin{center}
+        \includegraphics[scale=0.5]{kaitz_percentiles.png}
+    \end{center}
+
+\end{frame}
+
+\begin{frame}
+
     \frametitle{Empirical model} % Title
     \framesubtitle{}  % Subtitle
     \rmfamily % Font
     
     \begin{wideitemize}
-        \item Individual-level event study for different minimum wage quantiles: \textcolor{fgre}{Arkhangelsky, Kazuharu and, Zohar (in progress)}
+        \item Individual-level event study for different minimum wage quantiles: \textcolor{fgre}{Arkhangelsky, Yanagimoto and Zohar (in progress)}
     \end{wideitemize}
     
     \begin{equation*}
-        u_{it} = \alpha_i + \lambda_t + \sum_{k\geq h}\tau_{ik} + \beta X_{it} + \nu_{it}
+        y_{ct} = \alpha_c + \lambda_t + \sum_{k\geq h}\tau_{ck} + \beta X_{ct} + \nu_{ct}
     \end{equation*}
     with 
     \vspace{9pt}
     \begin{wideitemize}
-        \item[\textcolor{fblu}{\textbullet}] \(\textcolor{fblu}{i}\): county, \(\textcolor{fblu}{t}\): time (year-month), \(\textcolor{fblu}{k = t - z_i}\): time difference from PDMP implementation year in county \(\textcolor{fblu}{i}\), \(\textcolor{fblu}{z_i}\)
-        \item[\textcolor{fblu}{\textbullet}] \(\textcolor{fblu}{u_{it}}\): unemployment rate, \(\textcolor{fblu}{X_{it}}\): demographic covariates, \(\textcolor{fblu}{\nu_{it}}\): idiosyncratic shock 
+        \item[\textcolor{fblu}{\textbullet}] \(\textcolor{fblu}{c}\): county, \(\textcolor{fblu}{t}\): time (year-month), \(\textcolor{fblu}{k = t - z_c}\): time difference from PDMP implementation year in county \(\textcolor{fblu}{c}\), \(\textcolor{fblu}{z_c}\)
+        \item[\textcolor{fblu}{\textbullet}] \(\textcolor{fblu}{y_{ct}}\): labor market outcome, \(\textcolor{fblu}{X_{ct}}\): demographic covariates, \(\textcolor{fblu}{\nu_{ct}}\): idiosyncratic shock 
     \end{wideitemize}
     \vspace{9pt}
     State-level changes must be exogenous at the county level for \textcolor{fblu}{identification} and no anticipation up to \(\textcolor{fblu}{h}\) periods
@@ -37,29 +76,72 @@
 
 \begin{frame}
 
+    \label{unemp_rate_result}
     \frametitle{Results} % Title
     \framesubtitle{}  % Subtitle
     \rmfamily % Font
     
     \begin{center}
-        \includegraphics[scale=0.45]{mop_effects.png}
+        \includegraphics[scale=0.4]{mop010unemprate.png}
     \end{center}
+
+    \hyperlink{perc_comparison_1}{\beamerbutton{Percentiles comparison}}
+    \hyperlink{dist_1}{\beamerbutton{Distributions}}
 
 \end{frame}
 
 
 \begin{frame}
 
+    \label{unemp_result}
     \frametitle{Results} % Title
     \framesubtitle{}  % Subtitle
     \rmfamily % Font
     
     \begin{center}
-        \includegraphics[scale=0.45]{pmq_effects.png}
+        \includegraphics[scale=0.4]{mop010unemp.png}
     \end{center}
+
+    \hyperlink{perc_comparison_2}{\beamerbutton{Percentiles comparison}}
+    \hyperlink{dist_2}{\beamerbutton{Distributions}}
 
 \end{frame}
 
+\begin{frame}
+
+    \label{emp_result}
+    \frametitle{Results} % Title
+    \framesubtitle{}  % Subtitle
+    \rmfamily % Font
+    
+    \begin{center}
+        \includegraphics[scale=0.4]{mop010emp.png}
+    \end{center}
+
+    \hyperlink{perc_comparison_3}{\beamerbutton{Percentiles comparison}}
+    \hyperlink{dist_3}{\beamerbutton{Distributions}}
+
+\end{frame}
+
+
+\begin{frame}
+
+    \label{labforce_result}
+    \frametitle{Results} % Title
+    \framesubtitle{}  % Subtitle
+    \rmfamily % Font
+    
+    \begin{center}
+        \includegraphics[scale=0.4]{mop010labforce.png}
+    \end{center}
+
+    \hyperlink{perc_comparison_4}{\beamerbutton{Percentiles comparison}}
+    \hyperlink{dist_4}{\beamerbutton{Distributions}}
+
+\end{frame}
+
+
+\begin{comment}
 
 \begin{frame}
 
@@ -81,5 +163,7 @@
     \end{wideitemize}
     
 \end{frame}
+
+\end{comment}
 
 

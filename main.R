@@ -9,8 +9,16 @@ rm(list=ls())
 set.seed(123)
 
 library(tidyverse)
+library(reshape2)
+
 library(fixest)
+
 library(ggtext)
+library(ggridges)
+
+# Set the path
+file_location <- rstudioapi::getSourceEditorContext()$path
+setwd(dirname(file_location)) # set path to location
 
 # Auxiliary functions
 source(paste(getwd(), "data/utilities.R", sep = "/"))
@@ -18,10 +26,6 @@ source(paste(getwd(), "data/plots.R", sep = "/"))
 
 # One-side length of effects considered
 window = 24 # two years
-
-# Set the path
-file_location <- rstudioapi::getSourceEditorContext()$path
-setwd(dirname(file_location)) # set path to location
 
 data_location <- paste(
   getwd(),
@@ -51,85 +55,44 @@ not_yet_treated_mop <- df[df[["time_marker"]] < df$first_treatment_mop,] # mop
 not_yet_treated_pmq <- df[df[["time_marker"]] < df$first_treatment_pmq,] # pmq
 
 # First stage regressions
-first_stage_mop_unem_rate <- fixest::feols(
-  stats::as.formula(
-    paste0("unem_rate ~ ", covariates, " |", "fips", " + ", "time_marker")
-    ),
-  data = not_yet_treated_mop,
-  combine.quick = FALSE,
-  warn = FALSE,
-  notes = FALSE
-  )
+samples_fs <- c("not_yet_treated_mop","not_yet_treated_pmq")
+outcomes_fs <- c("unem_rate ~ ","unem ~ ", "emp ~ ","lab_force ~ ")
 
-first_stage_mop_unem <- fixest::feols(
-  stats::as.formula(
-    paste0("unem ~ ", covariates, " |", "fips", " + ", "time_marker")
-  ),
-  data = not_yet_treated_mop,
-  combine.quick = FALSE,
-  warn = FALSE,
-  notes = FALSE
-  )
+# TWFE (linear)
+for (i in samples_fs){
+  sample_i = sub("not_yet_treated_", "", i)
+  for (j in outcomes_fs){
+    outcome_j = sub(" ~ ", "", j)
+    assign(
+      paste0("first_stage_",sample_i,"_",outcome_j),
+      fixest::feols(
+        stats::as.formula(
+          paste0(j, covariates, " |", "fips", " + ", "time_marker")
+        ),
+        data = get(i),
+        combine.quick = FALSE,
+        warn = FALSE,
+        notes = FALSE
+      )
+    )
+  }
+}
 
-first_stage_mop_emp <- fixest::feols(
-  stats::as.formula(
-    paste0("emp ~ ", covariates, " |", "fips", " + ", "time_marker")
-  ),
-  data = not_yet_treated_mop,
-  combine.quick = FALSE,
-  warn = FALSE,
-  notes = FALSE
-  )
+# # Error: cannot allocate vector of size 672.8 Gb
+# library(randomForest)
+# ind <- sample(2, nrow(not_yet_treated_mop), replace = TRUE, prob = c(0.7, 0.3))
+# not_yet_treated_mop_train <- not_yet_treated_mop[ind==1,]
+# not_yet_treated_mop_test <- not_yet_treated_mop[ind==2,]
+# randomForest(
+#   stats::as.formula(
+#   #paste0("unem_rate ~ ", covariates)
+#   unem_rate ~ as.factor(fips)
+#   ),
+#   data = not_yet_treated_mop_train[1:1000,],
+#   proximity = TRUE,
+#   na.action = na.omit
+#   ) 
 
-first_stage_mop_lab_force <- fixest::feols(
-  stats::as.formula(
-    paste0("lab_force ~ ", covariates, " |", "fips", " + ", "time_marker")
-  ),
-  data = not_yet_treated_mop,
-  combine.quick = FALSE,
-  warn = FALSE,
-  notes = FALSE
-  )
-
-first_stage_pmq_unem_rate <- fixest::feols(
-  stats::as.formula(
-    paste0("unem_rate ~ ", covariates, " |", "fips", " + ", "time_marker")
-    ),
-  data = not_yet_treated_pmq,
-  combine.quick = FALSE,
-  warn = FALSE,
-  notes = FALSE
-  ) 
-
-first_stage_pmq_unem <- fixest::feols(
-  stats::as.formula(
-    paste0("unem ~ ", covariates, " |", "fips", " + ", "time_marker")
-  ),
-  data = not_yet_treated_pmq,
-  combine.quick = FALSE,
-  warn = FALSE,
-  notes = FALSE
-  ) 
-
-first_stage_pmq_emp <- fixest::feols(
-  stats::as.formula(
-    paste0("emp ~ ", covariates, " |", "fips", " + ", "time_marker")
-  ),
-  data = not_yet_treated_pmq,
-  combine.quick = FALSE,
-  warn = FALSE,
-  notes = FALSE
-  ) 
-
-first_stage_pmq_lab_force <- fixest::feols(
-  stats::as.formula(
-    paste0("lab_force ~ ", covariates, " |", "fips", " + ", "time_marker")
-  ),
-  data = not_yet_treated_pmq,
-  combine.quick = FALSE,
-  warn = FALSE,
-  notes = FALSE
-  ) 
 
 # Include fitted values
 df[["unem_rate_hat_mop"]] <- stats::predict(
@@ -243,9 +206,13 @@ effects_pmq_cty = f_county_effects(df = df,policy = pol_pmq,window = window)
 above_below_minw_mop = f_states_above_below(df=df,pol=pol_mop)
 above_below_minw_pmq = f_states_above_below(df=df,pol=pol_pmq)
 
-f_county_kaitz(df=df,pol=pol_mop)
-
 kaitz_matrices_mop = f_county_kaitz(df=df,pol=pol_mop)
+
+# write.table(x = kaitz_matrices_mop, file = "C:/Users/guill/Desktop/kaitz_matrices_mop.csv", sep = ',', row.names = FALSE, col.names = FALSE)
+# kaitz_matrices_mop_loaded <- read.table(file = "C:/Users/guill/Desktop/kaitz_matrices_mop.csv", header = FALSE, sep = ',')
+# m1<- as.matrix(kaitz_matrices_mop_loaded)[,1:4]
+# as.array(as.matrix(kaitz_matrices_mop_loaded),c(nrow(kaitz_matrices_mop_loaded),4,4))
+
 kaitz_matrices_pmq = f_county_kaitz(df=df,pol=pol_pmq)
 
 # As dataframes
@@ -269,137 +236,6 @@ effects_mop_above_mw <- effects_mop_state[state_names_mop %in% above_med_states_
 
 effects_pmq_below_mw <- effects_pmq_state[state_names_pmq %in% below_med_states_pmq,,]
 effects_pmq_above_mw <- effects_pmq_state[state_names_pmq %in% above_med_states_pmq,,]
-
-
-
-# Split counties by distribution of Kaitz-p indices
-for (kma in names(kaitz_matrices_mop)){
-  
-  # fill the list with initialized matrices  
-  kaitz_values <- matrix(0,length(fips_names_mop),4)
-  
-  for (i in fips_names_mop){
-    
-    # get index for element in vector
-    j = which(1*(fips_names_mop == i) == 1)
-    
-    # get treatment date for each state
-    kaitz_values[j,1] <- unique(
-      df_mop[df_mop$fips == i,]$first_treatment_mop
-    )
-    
-    # retrieve the year of treatment (this can be done way easier (?))
-    # year_treatment <- (
-    #   kaitz_values[j,1] - unique(
-    #     df_mop[(df_mop$fips == i)&(df_mop$time_marker == kaitz_values[j,1]),]$mop_month
-    #   )
-    # )/12 + 1960
-    
-    at_treatment <- df_mop[(df_mop$fips == i)&(df_mop$time_marker == kaitz_values[j,1]),]
-    
-    year_treatment <- unique(
-      at_treatment$year
-      )
-    
-    if (length(year_treatment) > 0) {
-      kaitz_values[j,2] <- year_treatment
-    } else {
-      kaitz_values[j,2] = NaN
-      print("Replacement vector is empty. NA assignment performed.")
-    } #CHECK
-    
-    # get kaitz percentile at treatment
-    kaitz_pct_treat <- at_treatment |>
-      select(
-        sub("_mop_matrix$", "", kma)
-      )
-    
-    if (length(unique(kaitz_pct_treat[[1]])) > 0) {
-      kaitz_values[j,3] <- unique(kaitz_pct_treat[[1]])
-    } else {
-      kaitz_values[j,3] = NaN
-      print("Replacement vector is empty. NA assignment performed.")
-    }
-    
-    # get national median of kaitz percentile at treatment
-    kaitz_pct_treat_nac <- df_mop[df_mop$time_marker == kaitz_values[j,1],] |> 
-      select(
-        sub("_mop_matrix$", "", kma)
-      )
-    
-    kaitz_values[j,4] <- kaitz_pct_treat_nac[[1]] |> 
-      median(na.rm = T)
-    
-  }
-  
-  kaitz_matrices_mop[[kma]] <- kaitz_values
-  
-}
-
-
-for (kma in names(kaitz_matrices_pmq)){
-  
-  # fill the list with initialized matrices  
-  kaitz_values <- matrix(0,length(fips_names_pmq),4)
-  
-  for (i in fips_names_pmq){
-    
-    # get index for element in vector
-    j = which(1*(fips_names_pmq == i) == 1)
-    
-    # get treatment date for each state
-    kaitz_values[j,1] <- unique(
-      df_pmq[df_pmq$fips == i,]$first_treatment_pmq
-    )
-    
-    # retrieve the year of treatment (this can be done way easier (?))
-    # year_treatment <- (
-    #   kaitz_values[j,1] - unique(
-    #     df_pmq[(df_pmq$fips == i)&(df_pmq$time_marker == kaitz_values[j,1]),]$pmq_month
-    #   )
-    # )/12 + 1960
-    
-    at_treatment <- df_pmq[(df_pmq$fips == i)&(df_pmq$time_marker == kaitz_values[j,1]),]
-    
-    year_treatment <- unique(
-      at_treatment$year
-      )
-    
-    if (length(year_treatment) > 0) {
-      kaitz_values[j,2] <- year_treatment
-    } else {
-      kaitz_values[j,2] = NaN
-      print("Replacement vector is empty. NA assignment performed.")
-    } #CHECK
-    
-    # get kaitz percentile at treatment
-    kaitz_pct_treat <- at_treatment |>
-      select(
-        sub("_pmq_matrix$", "", kma)
-      )
-    
-    if (length(unique(kaitz_pct_treat[[1]])) > 0) {
-      kaitz_values[j,3] <- unique(kaitz_pct_treat[[1]])
-    } else {
-      kaitz_values[j,3] = NaN
-      print("Replacement vector is empty. NA assignment performed.")
-    }
-    
-    # get national median of kaitz percentile at treatment
-    kaitz_pct_treat_nac <- df_pmq[df_pmq$time_marker == kaitz_values[j,1],] |> 
-      select(
-        sub("_pmq_matrix$", "", kma)
-      )
-    
-    kaitz_values[j,4] <- kaitz_pct_treat_nac[[1]] |> 
-      median(na.rm = T)
-    
-  }
-  
-  kaitz_matrices_pmq[[kma]] <- kaitz_values
-  
-}
-
 
 # Combine matrices and corresponding data frames into lists
 kaitz_matrices_list <- list(kaitz_matrices_mop, kaitz_matrices_pmq)
@@ -509,29 +345,90 @@ state_plot(effects_pmq_below_mw,effects_pmq_above_mw,window,"pmq","employment")
 state_plot(effects_mop_below_mw,effects_mop_above_mw,window,"mop","labor force")
 state_plot(effects_pmq_below_mw,effects_pmq_above_mw,window,"pmq","labor force")
 
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010unemprate.png",width = 600, height = 539)
 county_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","unemployment rate")
+dev.off() 
+
 county_plot(effects_pmq_below_mw_pct10,effects_pmq_above_mw_pct10,window,"pmq","0.10","unemployment rate")
 
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010unemp.png",width = 600, height = 539)
 county_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","unemployment")
+dev.off() 
+
 county_plot(effects_pmq_below_mw_pct10,effects_pmq_above_mw_pct10,window,"pmq","0.10","unemployment")
 
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010emp.png",width = 600, height = 539)
 county_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","employment")
+dev.off() 
+
 county_plot(effects_pmq_below_mw_pct10,effects_pmq_above_mw_pct10,window,"pmq","0.10","employment")
 
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010labforce.png",width = 600, height = 539)
 county_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","labor force")
+dev.off() 
+
 county_plot(effects_pmq_below_mw_pct10,effects_pmq_above_mw_pct10,window,"pmq","0.10","labor force")
 
-county_plot(effects_mop_below_mw_pct25,effects_mop_above_mw_pct25,window,"mop","0.25")
-county_plot(effects_pmq_below_mw_pct25,effects_pmq_above_mw_pct25,window,"pmq","0.25")
+county_plot(effects_mop_below_mw_pct25,effects_mop_above_mw_pct25,window,"mop","0.25","unemployment rate")
+county_plot(effects_pmq_below_mw_pct25,effects_pmq_above_mw_pct25,window,"pmq","0.25","unemployment rate")
 
-county_plot(effects_mop_below_mw_median,effects_mop_above_mw_median,window,"mop","0.50")
+county_plot(effects_mop_below_mw_pct25,effects_mop_above_mw_pct25,window,"mop","0.25","unemployment")
+county_plot(effects_pmq_below_mw_pct25,effects_pmq_above_mw_pct25,window,"pmq","0.25","unemployment")
+
+county_plot(effects_mop_below_mw_pct25,effects_mop_above_mw_pct25,window,"mop","0.25","employment")
+county_plot(effects_pmq_below_mw_pct25,effects_pmq_above_mw_pct25,window,"pmq","0.25","employment")
+
+county_plot(effects_mop_below_mw_pct25,effects_mop_above_mw_pct25,window,"mop","0.25","labor force")
+county_plot(effects_pmq_below_mw_pct25,effects_pmq_above_mw_pct25,window,"pmq","0.25","labor force")
+
+county_plot(effects_mop_below_mw_median,effects_mop_above_mw_median,window,"mop","0.50","employment")
 county_plot(effects_pmq_below_mw_median,effects_pmq_above_mw_median,window,"pmq","0.50")
 
-county_plot(effects_mop_below_mw_pct75,effects_mop_above_mw_pct75,window,"mop","0.75")
+county_plot(effects_mop_below_mw_pct75,effects_mop_above_mw_pct75,window,"mop","0.75","employment")
 county_plot(effects_pmq_below_mw_pct75,effects_pmq_above_mw_pct75,window,"pmq","0.75")
 
-county_plot(effects_mop_below_mw_pct90,effects_mop_above_mw_pct90,window,"mop","0.90")
+county_plot(effects_mop_below_mw_pct90,effects_mop_above_mw_pct90,window,"mop","0.90","employment")
 county_plot(effects_pmq_below_mw_pct90,effects_pmq_above_mw_pct90,window,"pmq","0.90")
 
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/comparison_unemprates.png",width = 600, height = 539)
+comparison_plot(effects_mop_above_mw_pct10,effects_mop_above_mw_pct25,effects_mop_above_mw_median,
+                effects_mop_above_mw_pct75,effects_mop_above_mw_pct90,window,"mop","unemployment rate")
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/comparison_unemp.png",width = 600, height = 539)
+comparison_plot(effects_mop_above_mw_pct10,effects_mop_above_mw_pct25,effects_mop_above_mw_median,
+                effects_mop_above_mw_pct75,effects_mop_above_mw_pct90,window,"mop","unemployment")
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/comparison_emp.png",width = 600, height = 539)
+comparison_plot(effects_mop_above_mw_pct10,effects_mop_above_mw_pct25,effects_mop_above_mw_median,
+                effects_mop_above_mw_pct75,effects_mop_above_mw_pct90,window,"mop","employment")
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/comparison_labforce.png",width = 600, height = 539)
+comparison_plot(effects_mop_above_mw_pct10,effects_mop_above_mw_pct25,effects_mop_above_mw_median,
+                effects_mop_above_mw_pct75,effects_mop_above_mw_pct90,window,"mop","labor force")
+dev.off() 
 
 # county[(policies = 2)*(outcomes = 4)*(percentiles = 5)] + state[(policies = 2)*(outcomes = 4)] = 48 potential results
+
+df_densities <- cbind(kaitz_pct10_mop_df$V3,kaitz_pct25_mop_df$V3,kaitz_median_mop_df$V3,kaitz_pct75_mop_df$V3,kaitz_pct90_mop_df$V3)
+df_densities <- as.data.frame(df_densities)
+kaitz_densities_plot(df_densities)
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010_dens_unemp_rate.png",width = 600, height = 539)
+joy_division_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","unemployment rate")
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010_dens_unemp.png",width = 600, height = 539)
+joy_division_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","unemployment")
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010_dens_emp.png",width = 600, height = 539)
+joy_division_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","employment")
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010_dens_labforce.png",width = 600, height = 539)
+joy_division_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","labor force")
+dev.off() 
+

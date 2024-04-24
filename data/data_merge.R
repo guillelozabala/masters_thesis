@@ -47,13 +47,13 @@ minwage <- read.csv(
   )
 
 minw_bindgness <- read.csv(
-  file.path(getwd(), "county_percentiles.csv"),
+  file.path(getwd(), "sector_wages/county_percentiles.csv"),
   header = TRUE,
   sep = ","
 )
 
 demographics <- read.csv(
-  file.path(getwd(), "county_demographics.csv"),
+  file.path(getwd(), "demographics/county_demographics.csv"),
   header = TRUE,
   sep = ","
   )
