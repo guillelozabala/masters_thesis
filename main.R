@@ -9,11 +9,11 @@ rm(list=ls())
 set.seed(123)
 
 library(tidyverse)
-#library(reshape2)
 library(fixest)
 library(ggtext)
-#library(ggridges)
 library(binsreg)
+library(gridExtra)
+library(grid)
 
 # Set the path
 file_location <- rstudioapi::getSourceEditorContext()$path
@@ -26,6 +26,7 @@ source(paste(getwd(), "data/plots.R", sep = "/"))
 # Handy strings
 outcomes <- c("unem_rate", "emp_rate","lab_force_rate")
 policies <- c("mop","pmq")
+percentiles <- c("0.10", "0.25", "0.50", "0.75", "0.90")
 
 # One-side length of effects considered
 window = 24 # two years
@@ -126,223 +127,9 @@ for (outcome in outcomes){
   }
 }
 
-# effects_mop_county[,,1] %>% as.data.frame() %>% setNames(c("fips",paste0("V",-24:24)))
-# effects_pmq_county[,,1] %>% as.data.frame() %>% setNames(c("fips",paste0("V",-24:24)))
+
+IndividualEffectsPlot(joint_dfs,policies[1],outcomes[1],percentiles[1])
+IndividualEffectsPlot(joint_dfs,policies[1],outcomes[2],percentiles[1])
+IndividualEffectsPlot(joint_dfs,policies[1],outcomes[3],percentiles[1])
 
 
-
-
-
-names(kaitz_wfips) <- c("kaitz_pct10_mop_matrix", 
-                        "kaitz_pct25_mop_matrix", 
-                        "kaitz_median_mop_matrix", 
-                        "kaitz_pct75_mop_matrix", 
-                        "kaitz_pct90_mop_matrix")
-
-kaitz_df_names <- c("kaitz_pct10_mop_df_wfips", 
-                    "kaitz_pct25_mop_df_wfips", 
-                    "kaitz_median_mop_df_wfips", 
-                    "kaitz_pct75_mop_df_wfips", 
-                    "kaitz_pct90_mop_df_wfips")
-
-for (kma in names(kaitz_wfips)){
-  # Assign the matrix to its corresponding data frame
-  assign(sub("_matrix$", "_df_wfips", kma), as.data.frame(kaitz_wfips[[kma]]))
-  }
-
-for (i in ((window+2):(2*window+1) - 26)){
-  assign(paste0("tau_",i,"_unemp_rate"),cbind(effects_mop_state_wfips[,1,1], effects_mop_state_wfips[,window+2+i,1]))
-  assign(paste0("tau_",i,"_emp_rate"),cbind(effects_mop_state_wfips[,1,1], effects_mop_state_wfips[,window+2+i,2]))
-  assign(paste0("tau_",i,"_lab_force_rate"),cbind(effects_mop_state_wfips[,1,1], effects_mop_state_wfips[,window+2+i,3]))
-}
-
-tau_0_unemp_rate <- as.data.frame(tau_0_unemp_rate)
-tau_5_unemp_rate <- as.data.frame(tau_1_unemp_rate)
-tau_11_unemp_rate <- as.data.frame(tau_2_unemp_rate)
-tau_23_unemp_rate <- as.data.frame(tau_3_unemp_rate)
-
-tau_0_emp_rate <- as.data.frame(tau_0_emp_rate)
-tau_5_emp_rate <- as.data.frame(tau_1_emp_rate)
-tau_11_emp_rate <- as.data.frame(tau_2_emp_rate)
-tau_23_emp_rate <- as.data.frame(tau_3_emp_rate)
-
-tau_0_lab_force_rate <- as.data.frame(tau_0_lab_force_rate)
-tau_5_lab_force_rate <- as.data.frame(tau_1_lab_force_rate)
-tau_11_lab_force_rate <- as.data.frame(tau_2_lab_force_rate)
-tau_23_lab_force_rate <- as.data.frame(tau_3_lab_force_rate)
-
-names(tau_0_unemp_rate) <- c('fips','value')
-names(tau_5_unemp_rate) <- c('fips','value')
-names(tau_11_unemp_rate) <- c('fips','value')
-names(tau_23_unemp_rate) <- c('fips','value')
-
-names(tau_0_emp_rate) <- c('fips','value')
-names(tau_5_emp_rate) <- c('fips','value')
-names(tau_11_emp_rate) <- c('fips','value')
-names(tau_23_emp_rate) <- c('fips','value')
-
-names(tau_0_lab_force_rate) <- c('fips','value')
-names(tau_5_lab_force_rate) <- c('fips','value')
-names(tau_11_lab_force_rate) <- c('fips','value')
-names(tau_23_lab_force_rate) <- c('fips','value')
-
-kindex_0 <- cbind(kaitz_pct10_mop_df$V3,kaitz_pct10_mop_df$V5) #static kaitz (at treatment)
-kindex_0 <- as.data.frame(kindex_0)
-names(kindex_0) <- c('kindex','fips')
-
-plot_taus_df_0_unemp_rate <- merge(tau_0_unemp_rate,kindex_0,by=c('fips'))
-plot_taus_df_5_unemp_rate <- merge(tau_5_unemp_rate,kindex_0,by=c('fips'))
-plot_taus_df_11_unemp_rate <- merge(tau_11_unemp_rate,kindex_0,by=c('fips'))
-plot_taus_df_23_unemp_rate <- merge(tau_23_unemp_rate,kindex_0,by=c('fips'))
-
-plot_taus_df_0_emp_rate <- merge(tau_0_emp_rate,kindex_0,by=c('fips'))
-plot_taus_df_5_emp_rate <- merge(tau_5_emp_rate,kindex_0,by=c('fips'))
-plot_taus_df_11_emp_rate <- merge(tau_11_emp_rate,kindex_0,by=c('fips'))
-plot_taus_df_23_emp_rate <- merge(tau_23_emp_rate,kindex_0,by=c('fips'))
-
-plot_taus_df_0_lab_force_rate <- merge(tau_0_lab_force_rate,kindex_0,by=c('fips'))
-plot_taus_df_5_lab_force_rate <- merge(tau_5_lab_force_rate,kindex_0,by=c('fips'))
-plot_taus_df_11_lab_force_rate <- merge(tau_11_lab_force_rate,kindex_0,by=c('fips'))
-plot_taus_df_23_lab_force_rate <- merge(tau_23_lab_force_rate,kindex_0,by=c('fips'))
-
-# plot_taus_0 <- ggplot(plot_taus_df_0) +
-#   geom_point(aes(x=kindex,y=value),color = "deeppink")
-# plot_taus_0 <- plot_taus_0 + theme_classic()
-# plot_taus_0
-
-
-
-binsreg(y=value,x=kindex,data=plot_taus_df_0_unemp_rate,ci=T)$data.plot$`Group Full Sample`
-
-binscatter_df_0_unemp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_0_unemp_rate,ci=T)$data.plot$`Group Full Sample`
-plot_taus_0_unemp_rate_df <- binscatter_df_0_unemp_rate$data.dots
-plot_taus_0_unemp_rate_df <- plot_taus_0_unemp_rate_df |>
-  mutate(
-    ci.l = binscatter_df_0_unemp_rate$data.ci$ci.l,
-    ci.r = binscatter_df_0_unemp_rate$data.ci$ci.r
-  )
-
-plot_taus_0_unemp_rate <- ggplot(plot_taus_0_unemp_rate_df,aes(x=x,y=fit)) +
-  geom_point(color = "deeppink") +
-  geom_line(color = "deeppink") +
-  geom_errorbar(aes(ymin = ci.l, ymax = ci.r),color = "deeppink") +
-  ylim(-0.5,1.5)
-plot_taus_0_unemp_rate <- plot_taus_0_unemp_rate + theme_classic()
-plot_taus_0_unemp_rate
-
-binscatter_df_5_unemp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_5_unemp_rate)$data.plot$`Group Full Sample`$data.dots
-plot_taus_5_unemp_rate <- ggplot(binscatter_df_5_unemp_rate) +
-  geom_point(aes(x=x,y=fit),color = "deeppink") +
-  geom_line(aes(x=x,y=fit),color = "deeppink") +
-  ylim(-0.5,1.5)
-plot_taus_5_unemp_rate <- plot_taus_5_unemp_rate + theme_classic()
-plot_taus_5_unemp_rate
-
-binscatter_df_11_unemp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_11_unemp_rate)$data.plot$`Group Full Sample`$data.dots
-plot_taus_11_unemp_rate <- ggplot(binscatter_df_11_unemp_rate) +
-  geom_point(aes(x=x,y=fit),color = "deeppink") +
-  geom_line(aes(x=x,y=fit),color = "deeppink") +
-  ylim(-0.5,1.5)
-plot_taus_11_unemp_rate <- plot_taus_11_unemp_rate + theme_classic()
-plot_taus_11_unemp_rate
-
-binscatter_df_23_unemp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_23_unemp_rate)$data.plot$`Group Full Sample`$data.dots
-plot_taus_23_unemp_rate <- ggplot(binscatter_df_23_unemp_rate) +
-  geom_point(aes(x=x,y=fit),color = "deeppink") +
-  geom_line(aes(x=x,y=fit),color = "deeppink") +
-  ylim(-0.5,1.5)
-plot_taus_23_unemp_rate <- plot_taus_23_unemp_rate + theme_classic()
-plot_taus_23_unemp_rate
-
-
-binscatter_df_0_emp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_0_emp_rate)$data.plot$`Group Full Sample`$data.dots
-plot_taus_0_emp_rate <- ggplot(binscatter_df_0_emp_rate) +
-  geom_point(aes(x=x,y=fit),color = "skyblue") +
-  geom_line(aes(x=x,y=fit),color = "skyblue") +
-  ylim(-1.5,1.0)
-plot_taus_0_emp_rate <- plot_taus_0_emp_rate + theme_classic()
-plot_taus_0_emp_rate
-
-binscatter_df_5_emp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_5_emp_rate)$data.plot$`Group Full Sample`$data.dots
-plot_taus_5_emp_rate <- ggplot(binscatter_df_5_emp_rate) +
-  geom_point(aes(x=x,y=fit),color = "skyblue") +
-  geom_line(aes(x=x,y=fit),color = "skyblue") +
-  ylim(-1.5,1.0)
-plot_taus_5_emp_rate <- plot_taus_5_emp_rate + theme_classic()
-plot_taus_5_emp_rate
-
-binscatter_df_11_emp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_11_emp_rate)$data.plot$`Group Full Sample`$data.dots
-plot_taus_11_emp_rate <- ggplot(binscatter_df_11_emp_rate) +
-  geom_point(aes(x=x,y=fit),color = "skyblue") +
-  geom_line(aes(x=x,y=fit),color = "skyblue") +
-  ylim(-1.5,1.0)
-plot_taus_11_emp_rate <- plot_taus_11_emp_rate + theme_classic()
-plot_taus_11_emp_rate
-
-binscatter_df_23_emp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_23_emp_rate)$data.plot$`Group Full Sample`$data.dots
-plot_taus_23_emp_rate <- ggplot(binscatter_df_23_emp_rate) +
-  geom_point(aes(x=x,y=fit),color = "skyblue") +
-  geom_line(aes(x=x,y=fit),color = "skyblue") +
-  ylim(-1.5,1.0)
-plot_taus_23_emp_rate <- plot_taus_23_emp_rate + theme_classic()
-plot_taus_23_emp_rate
-
-
-binscatter_df_0_lab_force_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_0_lab_force_rate)$data.plot$`Group Full Sample`$data.dots
-plot_taus_0_lab_force_rate <- ggplot(binscatter_df_0_lab_force_rate) +
-  geom_point(aes(x=x,y=fit),color = "purple") +
-  geom_line(aes(x=x,y=fit),color = "purple") +
-  ylim(-2.2,1.1)
-plot_taus_0_lab_force_rate <- plot_taus_0_lab_force_rate + theme_classic()
-plot_taus_0_lab_force_rate
-
-binscatter_df_5_lab_force_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_5_lab_force_rate)$data.plot$`Group Full Sample`$data.dots
-plot_taus_5_lab_force_rate <- ggplot(binscatter_df_5_lab_force_rate) +
-  geom_point(aes(x=x,y=fit),color = "purple") +
-  geom_line(aes(x=x,y=fit),color = "purple") +
-  ylim(-2.2,1.1)
-plot_taus_5_lab_force_rate <- plot_taus_5_lab_force_rate + theme_classic()
-plot_taus_5_lab_force_rate
-
-binscatter_df_11_lab_force_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_11_lab_force_rate)$data.plot$`Group Full Sample`$data.dots
-plot_taus_11_lab_force_rate <- ggplot(binscatter_df_11_lab_force_rate) +
-  geom_point(aes(x=x,y=fit),color = "purple") +
-  geom_line(aes(x=x,y=fit),color = "purple") +
-  ylim(-2.2,1.1)
-plot_taus_11_lab_force_rate <- plot_taus_11_lab_force_rate + theme_classic()
-plot_taus_11_lab_force_rate
-
-binscatter_df_23_lab_force_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_23_lab_force_rate)$data.plot$`Group Full Sample`$data.dots
-plot_taus_23_lab_force_rate <- ggplot(binscatter_df_23_lab_force_rate) +
-  geom_point(aes(x=x,y=fit),color = "purple") +
-  geom_line(aes(x=x,y=fit),color = "purple") +
-  ylim(-2.2,1.1)
-plot_taus_23_lab_force_rate <- plot_taus_23_lab_force_rate + theme_classic()
-plot_taus_23_lab_force_rate
-
-
-library(gridExtra)
-grid.arrange(grobs = list(plot_taus_0_unemp_rate,plot_taus_5_unemp_rate,plot_taus_11_unemp_rate,plot_taus_23_unemp_rate), nrow = 1)
-grid.arrange(grobs = list(plot_taus_0_emp_rate,plot_taus_5_emp_rate,plot_taus_11_emp_rate,plot_taus_23_emp_rate), nrow = 1)
-grid.arrange(grobs = list(plot_taus_0_lab_force_rate,plot_taus_5_lab_force_rate,plot_taus_11_lab_force_rate,plot_taus_23_lab_force_rate), nrow = 1)
-
-grid.arrange(grobs = list(plot_taus_0_unemp_rate,plot_taus_5_unemp_rate,plot_taus_11_unemp_rate,plot_taus_23_unemp_rate,
-                          plot_taus_0_emp_rate,plot_taus_5_emp_rate,plot_taus_11_emp_rate,plot_taus_23_emp_rate,
-                          plot_taus_0_lab_force_rate,plot_taus_5_lab_force_rate,plot_taus_11_lab_force_rate,plot_taus_23_lab_force_rate), nrow = 3)
-
-
-# binsreg(y=value,x=kindex,data=plot_taus_df_1)
-# binsreg(y=value,x=kindex,data=plot_taus_df_2)
-# binsreg(y=value,x=kindex,data=plot_taus_df_3)
-# binsreg(y=value,x=kindex,data=plot_taus_df_4)
-binsreg(y=value,x=kindex,data=plot_taus_df_5)
-
-tau_11_unemp_rate <- as.data.frame(tau_11_unemp_rate)
-names(tau_11_unemp_rate) <- c('fips','value')
-plot_taus_df_11 <- merge(tau_11_unemp_rate,kindex_0,by=c('fips')) 
-binsreg(y=value,x=kindex,data=plot_taus_df_11)
-
-tau_23_unemp_rate <- as.data.frame(tau_23_unemp_rate)
-names(tau_23_unemp_rate) <- c('fips','value')
-plot_taus_df_23 <- merge(tau_23_unemp_rate,kindex_0,by=c('fips')) 
-binsreg(y=value,x=kindex,data=plot_taus_df_23)
