@@ -16,14 +16,14 @@ unemp_rate <- read.csv(
   sep = ","
   )
 
-unemp <- read.csv(
-  file.path(getwd(), "labor_market_outcomes/unemployment.csv"),
-  header = TRUE,
-  sep = ","
-  )
+# unemp <- read.csv(
+#   file.path(getwd(), "labor_market_outcomes/unemployment.csv"),
+#   header = TRUE,
+#   sep = ","
+#   )
 
-emp <- read.csv(
-  file.path(getwd(), "labor_market_outcomes/employment.csv"),
+emp_rate <- read.csv(
+  file.path(getwd(), "labor_market_outcomes/employment_rate.csv"),
   header = TRUE,
   sep = ","
   )
@@ -54,6 +54,12 @@ minw_bindgness <- read.csv(
 
 demographics <- read.csv(
   file.path(getwd(), "demographics/county_demographics.csv"),
+  header = TRUE,
+  sep = ","
+  )
+
+drug_deaths <- read.csv(
+  file.path(getwd(), "drugs/NCHS_Drug_Poisoning_Mortality_by_County_United_States.csv"), 
   header = TRUE,
   sep = ","
   )
@@ -125,18 +131,14 @@ horwitz <- horwitz |>
 
 ## Rename, time marker, select and numeric values
 
-labor_market <- list(unemp_rate,unemp,emp,lab_force)
+labor_market <- list(unemp_rate,emp_rate,lab_force)
 
 clean_lab_market_data <- function(df){
   
   df <- df |> 
     rename(
-      state = state_name
-    ) |>
-    rename(
-      county = county_name
-    ) |>
-    rename(
+      state = state_name,
+      county = county_name,
       rate = value
     ) |>
     mutate(
@@ -156,8 +158,7 @@ labor_market_clean <- purrr::map(
   )
 
 names(labor_market_clean) <- c("unemp_rate",
-                               "unemp",
-                               "emp",
+                               "emp_rate",
                                "lab_force")
 
 # Minimum Wage
@@ -166,12 +167,8 @@ names(labor_market_clean) <- c("unemp_rate",
 
 minwage <- minwage |> 
   rename(
-    year = Year
-    ) |>
-  rename(
-    state = State.or.otherjurisdiction
-    ) |>
-  rename(
+    year = Year,
+    state = State.or.otherjurisdiction,
     minw = Value
     )
 
@@ -188,12 +185,44 @@ minwage <- rbind(
 
 # Demographics
 
-## Select the ratios only
+## Select the ratios and population only
 
 demographics <- cbind(
-  demographics[,1:2],
+  demographics[,1:3],
   demographics[, grep("_ratio$", colnames(demographics))]
   )
+
+demographics[['working_age_pop_weight']] <- demographics[['age5_population_ratio']] +
+  demographics[['age6_population_ratio']] + demographics[['age7_population_ratio']] +
+  demographics[['age8_population_ratio']] + demographics[['age9_population_ratio']] +
+  demographics[['age10_population_ratio']] + demographics[['age11_population_ratio']] +
+  demographics[['age12_population_ratio']] + demographics[['age13_population_ratio']]
+
+demographics[['working_age_pop']] <- demographics[['working_age_pop_weight']]*demographics[['population']]
+
+# Drugs
+
+## Select the scaled predictions only
+
+drug_deaths_scaled <- drug_deaths[F,]
+for (i in unique(drug_deaths$Year)){
+  drug_deaths_y <- drug_deaths[drug_deaths['Year'] == i,]
+  drug_deaths_y <- drug_deaths_y |>
+    mutate(
+      scaled_model_values = scale(Model.based.Death.Rate)
+      )
+  drug_deaths_scaled <- rbind(drug_deaths_scaled,drug_deaths_y)
+  }
+
+drug_deaths_scaled <- drug_deaths_scaled |>
+  rename(
+    fips = FIPS,
+    year = Year,
+    model_values = Model.based.Death.Rate
+    )
+
+overdose_columns <- c("fips", "year", "model_values", "scaled_model_values")
+drug_deaths_scaled <- drug_deaths_scaled[,overdose_columns]
 
 # Merging
 
@@ -203,8 +232,8 @@ df <- merge(
     unem_rate = rate
     ),
   rename(
-    labor_market_clean$unemp,
-    unem = rate
+    labor_market_clean$emp_rate,
+    emp_rate = rate
     ),
   by = c(
     "year",
@@ -216,21 +245,6 @@ df <- merge(
     )
 ) 
 
-df <- merge(
-  df,
-  rename(
-    labor_market_clean$emp,
-    emp = rate
-    ),
-  by = c(
-    "year",
-    "fips",
-    "month",
-    "county",
-    "state",
-    "time_marker"
-    )
-  ) 
 
 df <- merge(
   df,
@@ -259,6 +273,16 @@ df <- merge(
 
 df <- merge(
   df,
+  drug_deaths_scaled,
+  by = c(
+    "year",
+    "fips"
+    ),
+  all = T
+  )
+
+df <- merge(
+  df,
   horwitz,
   by = "state"
   )
@@ -280,6 +304,11 @@ df <- merge(
     "year"
   ),
   all = T
+  )
+
+df <- df |>
+  mutate(
+    lab_force_rate = round((lab_force/working_age_pop)*100, 1)
   )
 
 # take logs
@@ -324,5 +353,5 @@ df <- rbind(df,df_dc)
 write.csv(
   df, 
   paste(getwd(),"joined_data.csv",sep = "/"),
-  row.names=F
+  row.names = F
   )

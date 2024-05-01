@@ -9,12 +9,11 @@ rm(list=ls())
 set.seed(123)
 
 library(tidyverse)
-library(reshape2)
-
+#library(reshape2)
 library(fixest)
-
 library(ggtext)
-library(ggridges)
+#library(ggridges)
+library(binsreg)
 
 # Set the path
 file_location <- rstudioapi::getSourceEditorContext()$path
@@ -24,26 +23,34 @@ setwd(dirname(file_location)) # set path to location
 source(paste(getwd(), "data/utilities.R", sep = "/"))
 source(paste(getwd(), "data/plots.R", sep = "/"))
 
+# Handy strings
+outcomes <- c("unem_rate", "emp_rate","lab_force_rate")
+policies <- c("mop","pmq")
+
 # One-side length of effects considered
 window = 24 # two years
 
+# Load the data
 data_location <- paste(
   getwd(),
   "data/joined_data.csv",
   sep = "/"
   )
 
-# Load the data
 df <- read.csv(
   data_location,
   header=TRUE,
   sep=","
   )
   
+#df <- df[df$year >= 2003 & df$year <= 2016,]
+
 # Prepare the covariates (as formula)
 names_covar <- names(
   df[,grep("_ratio$", colnames(df))]
   )
+
+names_covar <- c(names_covar,"scaled_model_values")
 
 covariates <- paste(
   names_covar,
@@ -54,381 +61,288 @@ covariates <- paste(
 not_yet_treated_mop <- df[df[["time_marker"]] < df$first_treatment_mop,] # mop
 not_yet_treated_pmq <- df[df[["time_marker"]] < df$first_treatment_pmq,] # pmq
 
-# First stage regressions
-samples_fs <- c("not_yet_treated_mop","not_yet_treated_pmq")
-outcomes_fs <- c("unem_rate ~ ","unem ~ ", "emp ~ ","lab_force ~ ")
-
-# TWFE (linear)
-for (i in samples_fs){
-  sample_i = sub("not_yet_treated_", "", i)
-  for (j in outcomes_fs){
-    outcome_j = sub(" ~ ", "", j)
-    assign(
-      paste0("first_stage_",sample_i,"_",outcome_j),
-      fixest::feols(
-        stats::as.formula(
-          paste0(j, covariates, " |", "fips", " + ", "time_marker")
+# First stage regressions, TWFE model:
+# For each policy
+for (policy in policies){
+  # retrieve the not yet treated sample
+  not_yet_treated_df = get(paste0("not_yet_treated_",policy)) 
+  # and for each outcome 
+  for (outcome in outcomes){
+    # regress outcome on fixed effects and covariates,
+    first_stage <- fixest::feols(
+      stats::as.formula(
+        paste0(outcome," ~ ", covariates, " |", "fips", " + ", "time_marker")
         ),
-        data = get(i),
-        combine.quick = FALSE,
-        warn = FALSE,
-        notes = FALSE
+      data = not_yet_treated_df,
+      combine.quick = FALSE,
+      warn = FALSE,
+      notes = FALSE
       )
-    )
+    # then create a column with the predicted values (\hat{y})
+    column_explained <- paste0(outcome, "_hat_", policy)
+    df[[column_explained]] <- stats::predict(
+      first_stage,
+      newdata = df
+      )
+    # and a column with the unexplained part (y - \hat{y})
+    column_unexplained <- paste0(outcome, "_tilde_", policy)
+    df[[column_unexplained]] <- df[[outcome]] - df[[column_explained]] 
+    }
+  }
+
+# # Drop never-takers for predictions
+# df_mop <- df[!is.na(df$first_treatment_mop),]
+# df_pmq <- df[!is.na(df$first_treatment_pmq),]
+
+# Obtain the effects by county (see data/utilities.R)
+effects_mop_county = CountyEffects(df = df, policy = policies[1], window = window)
+effects_pmq_county = CountyEffects(df = df, policy = policies[2], window = window)
+
+# Obtain the values of the Kaitz-p index at treatment (see data/utilities.R)
+kaitz_at_treatment_mop = KaitzAtTreatment(df = df, policy = policies[1])
+kaitz_at_treatment_pmq = KaitzAtTreatment(df = df, policy = policies[2])
+
+# Plot the distributions of the index at treatment (see data/plots.R)
+densities_plot_mop = KaitzDensitiesPlot(kaitz_at_treatment_mop)
+densities_plot_pmq = KaitzDensitiesPlot(kaitz_at_treatment_pmq)
+
+# Initialize the list of data frames
+joint_dfs <- list()
+for (outcome in outcomes){
+  for (policy in policies){
+    ind = which(outcomes == outcome)
+    # Turn the matrices of results to data frames
+    effects_county_df <- get(paste0("effects_",policy,"_county"))[,,ind] |>
+      as.data.frame() |>
+      setNames(
+        c("fips",paste0("V",-24:24))
+        )
+    # Merge them with the Kaitz-p values by using identifiers
+    joint_dfs[[paste0("effects_",policy,"_county_",outcome)]] <- merge(
+      effects_county_df,
+      get(paste0("kaitz_at_treatment_",policy)),
+      by="fips"
+      )
   }
 }
 
-# # Error: cannot allocate vector of size 672.8 Gb
-# library(randomForest)
-# ind <- sample(2, nrow(not_yet_treated_mop), replace = TRUE, prob = c(0.7, 0.3))
-# not_yet_treated_mop_train <- not_yet_treated_mop[ind==1,]
-# not_yet_treated_mop_test <- not_yet_treated_mop[ind==2,]
-# randomForest(
-#   stats::as.formula(
-#   #paste0("unem_rate ~ ", covariates)
-#   unem_rate ~ as.factor(fips)
-#   ),
-#   data = not_yet_treated_mop_train[1:1000,],
-#   proximity = TRUE,
-#   na.action = na.omit
-#   ) 
+# effects_mop_county[,,1] %>% as.data.frame() %>% setNames(c("fips",paste0("V",-24:24)))
+# effects_pmq_county[,,1] %>% as.data.frame() %>% setNames(c("fips",paste0("V",-24:24)))
 
 
-# Include fitted values
-df[["unem_rate_hat_mop"]] <- stats::predict(
-  first_stage_mop_unem_rate,
-  newdata = df
-  )
-
-df[["unem_hat_mop"]] <- stats::predict(
-  first_stage_mop_unem,
-  newdata = df
-  )
-
-df[["emp_hat_mop"]] <- stats::predict(
-  first_stage_mop_emp,
-  newdata = df
-  )
-
-df[["lab_force_hat_mop"]] <- stats::predict(
-  first_stage_mop_lab_force,
-  newdata = df
-  )
-
-df[["unem_rate_hat_pmq"]] <- stats::predict(
-  first_stage_pmq_unem_rate,
-  newdata = df
-  )
-
-df[["unem_hat_pmq"]] <- stats::predict(
-  first_stage_pmq_unem,
-  newdata = df
-  )
-
-df[["emp_hat_pmq"]] <- stats::predict(
-  first_stage_pmq_emp,
-  newdata = df
-  )
-
-df[["lab_force_hat_pmq"]] <- stats::predict(
-  first_stage_pmq_lab_force,
-  newdata = df
-  )
-
-# Include unexplained part
-df[["unem_rate_tilde_mop"]] <- df[["unem_rate"]] - df[["unem_rate_hat_mop"]] 
-df[["unem_tilde_mop"]] <- df[["unem"]] - df[["unem_hat_mop"]] 
-df[["emp_tilde_mop"]] <- df[["emp"]] - df[["emp_hat_mop"]] 
-df[["lab_force_tilde_mop"]] <- df[["lab_force"]] - df[["lab_force_hat_mop"]] 
-
-df[["unem_rate_tilde_pmq"]] <- df[["unem_rate"]] - df[["unem_rate_hat_pmq"]]
-df[["unem_tilde_pmq"]] <- df[["unem"]] - df[["unem_hat_pmq"]] 
-df[["emp_tilde_pmq"]] <- df[["emp"]] - df[["emp_hat_pmq"]] 
-df[["lab_force_tilde_pmq"]] <- df[["lab_force"]] - df[["lab_force_hat_pmq"]] 
-
-# Drop never-takers for predictions
-df_mop <- df[!is.na(df$first_treatment_mop),]
-df_pmq <- df[!is.na(df$first_treatment_pmq),]
-
-# # Initialize matrices
-# empty_array <- function(rows, columns, slices) {
-#   array(NA, c(rows, columns, slices))
-# }
-
-# # Average effects on each state
-# effects_mop_state <- empty_array(length(unique(df$state)), 2*window+1, 4) 
-# effects_pmq_state <- empty_array(length(unique(df$state)), 2*window+1, 4)
-# 
-# # Effects on each county
-# effects_mop_cty <- empty_array(length(unique(df$fips)), 2*window+1, 4)
-# effects_pmq_cty <- empty_array(length(unique(df$fips)), 2*window+1, 4)
-
-# States considered
-state_names <- unique(df$state)
-state_names_mop <- unique(df_mop$state)
-state_names_pmq <- unique(df_pmq$state)
-
-# FIPS considered
-fips_names <- unique(df$fips)
-fips_names_mop <- unique(df_mop$fips)
-fips_names_pmq <- unique(df_pmq$fips)
-
-# # For minimum wage comparisons (to arrays too?)
-# above_below_minw_mop = matrix(0,length(state_names_mop),4)
-# above_below_minw_pmq = matrix(0,length(state_names_pmq),4)
-
-# Initialize lists
-kaitz_matrices_mop <- vector("list", length = 5)
-kaitz_matrices_pmq <- vector("list", length = 5)
-
-names(kaitz_matrices_mop) <- c("kaitz_pct10_mop_matrix", 
-                               "kaitz_pct25_mop_matrix", 
-                               "kaitz_median_mop_matrix", 
-                               "kaitz_pct75_mop_matrix", 
-                               "kaitz_pct90_mop_matrix")
-
-names(kaitz_matrices_pmq) <- c("kaitz_pct10_pmq_matrix", 
-                               "kaitz_pct25_pmq_matrix", 
-                               "kaitz_median_pmq_matrix", 
-                               "kaitz_pct75_pmq_matrix", 
-                               "kaitz_pct90_pmq_matrix")
 
 
-pol_mop = "mop"
-pol_pmq = "pmq"
 
-effects_mop_state = f_state_avg_effects(df = df,policy = pol_mop,window = window)
-effects_pmq_state = f_state_avg_effects(df = df,policy = pol_pmq,window = window)
+names(kaitz_wfips) <- c("kaitz_pct10_mop_matrix", 
+                        "kaitz_pct25_mop_matrix", 
+                        "kaitz_median_mop_matrix", 
+                        "kaitz_pct75_mop_matrix", 
+                        "kaitz_pct90_mop_matrix")
 
-effects_mop_cty = f_county_effects(df = df,policy = pol_mop,window = window)
-effects_pmq_cty = f_county_effects(df = df,policy = pol_pmq,window = window)
+kaitz_df_names <- c("kaitz_pct10_mop_df_wfips", 
+                    "kaitz_pct25_mop_df_wfips", 
+                    "kaitz_median_mop_df_wfips", 
+                    "kaitz_pct75_mop_df_wfips", 
+                    "kaitz_pct90_mop_df_wfips")
 
-above_below_minw_mop = f_states_above_below(df=df,pol=pol_mop)
-above_below_minw_pmq = f_states_above_below(df=df,pol=pol_pmq)
-
-kaitz_matrices_mop = f_county_kaitz(df=df,pol=pol_mop)
-
-# write.table(x = kaitz_matrices_mop, file = "C:/Users/guill/Desktop/kaitz_matrices_mop.csv", sep = ',', row.names = FALSE, col.names = FALSE)
-# kaitz_matrices_mop_loaded <- read.table(file = "C:/Users/guill/Desktop/kaitz_matrices_mop.csv", header = FALSE, sep = ',')
-# m1<- as.matrix(kaitz_matrices_mop_loaded)[,1:4]
-# as.array(as.matrix(kaitz_matrices_mop_loaded),c(nrow(kaitz_matrices_mop_loaded),4,4))
-
-kaitz_matrices_pmq = f_county_kaitz(df=df,pol=pol_pmq)
-
-# As dataframes
-above_below_minw_mop <- as.data.frame(above_below_minw_mop)
-above_below_minw_pmq <- as.data.frame(above_below_minw_pmq)
-
-# Get indicators
-above_below_minw_mop <- above_below_minw_mop |> mutate(above = 1*(V3 > V4))
-above_below_minw_pmq <- above_below_minw_pmq |> mutate(above = 1*(V3 > V4))
-
-# Select the states
-below_med_states_mop <- state_names_mop[which(above_below_minw_mop$above == 0)]
-above_med_states_mop <- state_names_mop[which(above_below_minw_mop$above == 1)]
-
-below_med_states_pmq <- state_names_pmq[which(above_below_minw_pmq$above == 0)]
-above_med_states_pmq <- state_names_pmq[which(above_below_minw_pmq$above == 1)]
-
-# Split the sample accordingly
-effects_mop_below_mw <- effects_mop_state[state_names_mop %in% below_med_states_mop,,]
-effects_mop_above_mw <- effects_mop_state[state_names_mop %in% above_med_states_mop,,]
-
-effects_pmq_below_mw <- effects_pmq_state[state_names_pmq %in% below_med_states_pmq,,]
-effects_pmq_above_mw <- effects_pmq_state[state_names_pmq %in% above_med_states_pmq,,]
-
-# Combine matrices and corresponding data frames into lists
-kaitz_matrices_list <- list(kaitz_matrices_mop, kaitz_matrices_pmq)
-kaitz_df_names <- c("kaitz_pct10_mop_df", 
-                    "kaitz_pct25_mop_df", 
-                    "kaitz_median_mop_df", 
-                    "kaitz_pct75_mop_df", 
-                    "kaitz_pct90_mop_df")
-
-# Iterate over each list of matrices
-for (kaitz_matrices in kaitz_matrices_list) {
-  # Iterate over each matrix in the list
-  for (kma in names(kaitz_matrices)) {
-    # Assign the matrix to its corresponding data frame
-    assign(sub("_matrix$", "_df", kma), as.data.frame(kaitz_matrices[[kma]]))
+for (kma in names(kaitz_wfips)){
+  # Assign the matrix to its corresponding data frame
+  assign(sub("_matrix$", "_df_wfips", kma), as.data.frame(kaitz_wfips[[kma]]))
   }
+
+for (i in ((window+2):(2*window+1) - 26)){
+  assign(paste0("tau_",i,"_unemp_rate"),cbind(effects_mop_state_wfips[,1,1], effects_mop_state_wfips[,window+2+i,1]))
+  assign(paste0("tau_",i,"_emp_rate"),cbind(effects_mop_state_wfips[,1,1], effects_mop_state_wfips[,window+2+i,2]))
+  assign(paste0("tau_",i,"_lab_force_rate"),cbind(effects_mop_state_wfips[,1,1], effects_mop_state_wfips[,window+2+i,3]))
 }
 
-# Iterate over each data frame and apply mutation
-for (kaitz_df_name in kaitz_df_names) {
-  # Extract the data frame object
-  kaitz_df <- get(kaitz_df_name)
-  
-  # Apply mutation
-  kaitz_df <- kaitz_df |>
-    as.data.frame() |> 
-    mutate(above = 1 * (V3 > V4))
-  
-  # Assign the modified data frame back to the global environment
-  assign(kaitz_df_name, kaitz_df)
-}
+tau_0_unemp_rate <- as.data.frame(tau_0_unemp_rate)
+tau_5_unemp_rate <- as.data.frame(tau_1_unemp_rate)
+tau_11_unemp_rate <- as.data.frame(tau_2_unemp_rate)
+tau_23_unemp_rate <- as.data.frame(tau_3_unemp_rate)
 
-below_med_cts_mop_pct10 <- fips_names_mop[which(kaitz_pct10_mop_df$above == 0)] 
-above_med_cts_mop_pct10 <- fips_names_mop[which(kaitz_pct10_mop_df$above == 1)] #using set() maybe simplifies this?
+tau_0_emp_rate <- as.data.frame(tau_0_emp_rate)
+tau_5_emp_rate <- as.data.frame(tau_1_emp_rate)
+tau_11_emp_rate <- as.data.frame(tau_2_emp_rate)
+tau_23_emp_rate <- as.data.frame(tau_3_emp_rate)
 
-below_med_cts_mop_pct25 <- fips_names_mop[which(kaitz_pct25_mop_df$above == 0)]
-above_med_cts_mop_pct25 <- fips_names_mop[which(kaitz_pct25_mop_df$above == 1)] # nor !%in%
+tau_0_lab_force_rate <- as.data.frame(tau_0_lab_force_rate)
+tau_5_lab_force_rate <- as.data.frame(tau_1_lab_force_rate)
+tau_11_lab_force_rate <- as.data.frame(tau_2_lab_force_rate)
+tau_23_lab_force_rate <- as.data.frame(tau_3_lab_force_rate)
 
-below_med_cts_mop_median <- fips_names_mop[which(kaitz_median_mop_df$above == 0)]
-above_med_cts_mop_median <- fips_names_mop[which(kaitz_median_mop_df$above == 1)]
+names(tau_0_unemp_rate) <- c('fips','value')
+names(tau_5_unemp_rate) <- c('fips','value')
+names(tau_11_unemp_rate) <- c('fips','value')
+names(tau_23_unemp_rate) <- c('fips','value')
 
-below_med_cts_mop_pct75 <- fips_names_mop[which(kaitz_pct75_mop_df$above == 0)]
-above_med_cts_mop_pct75 <- fips_names_mop[which(kaitz_pct75_mop_df$above == 1)]
+names(tau_0_emp_rate) <- c('fips','value')
+names(tau_5_emp_rate) <- c('fips','value')
+names(tau_11_emp_rate) <- c('fips','value')
+names(tau_23_emp_rate) <- c('fips','value')
 
-below_med_cts_mop_pct90 <- fips_names_mop[which(kaitz_pct90_mop_df$above == 0)]
-above_med_cts_mop_pct90 <- fips_names_mop[which(kaitz_pct90_mop_df$above == 1)]
+names(tau_0_lab_force_rate) <- c('fips','value')
+names(tau_5_lab_force_rate) <- c('fips','value')
+names(tau_11_lab_force_rate) <- c('fips','value')
+names(tau_23_lab_force_rate) <- c('fips','value')
 
-# Split
-effects_mop_below_mw_pct10 <- effects_mop_cty[fips_names_mop %in% below_med_cts_mop_pct10,,]
-effects_mop_above_mw_pct10 <- effects_mop_cty[fips_names_mop %in% above_med_cts_mop_pct10,,]
+kindex_0 <- cbind(kaitz_pct10_mop_df$V3,kaitz_pct10_mop_df$V5) #static kaitz (at treatment)
+kindex_0 <- as.data.frame(kindex_0)
+names(kindex_0) <- c('kindex','fips')
 
-effects_mop_below_mw_pct25 <- effects_mop_cty[fips_names_mop %in% below_med_cts_mop_pct25,,]
-effects_mop_above_mw_pct25 <- effects_mop_cty[fips_names_mop %in% above_med_cts_mop_pct25,,]
+plot_taus_df_0_unemp_rate <- merge(tau_0_unemp_rate,kindex_0,by=c('fips'))
+plot_taus_df_5_unemp_rate <- merge(tau_5_unemp_rate,kindex_0,by=c('fips'))
+plot_taus_df_11_unemp_rate <- merge(tau_11_unemp_rate,kindex_0,by=c('fips'))
+plot_taus_df_23_unemp_rate <- merge(tau_23_unemp_rate,kindex_0,by=c('fips'))
 
-effects_mop_below_mw_median <- effects_mop_cty[fips_names_mop %in% below_med_cts_mop_median,,]
-effects_mop_above_mw_median <- effects_mop_cty[fips_names_mop %in% above_med_cts_mop_median,,]
+plot_taus_df_0_emp_rate <- merge(tau_0_emp_rate,kindex_0,by=c('fips'))
+plot_taus_df_5_emp_rate <- merge(tau_5_emp_rate,kindex_0,by=c('fips'))
+plot_taus_df_11_emp_rate <- merge(tau_11_emp_rate,kindex_0,by=c('fips'))
+plot_taus_df_23_emp_rate <- merge(tau_23_emp_rate,kindex_0,by=c('fips'))
 
-effects_mop_below_mw_pct75 <- effects_mop_cty[fips_names_mop %in% below_med_cts_mop_pct75,,]
-effects_mop_above_mw_pct75 <- effects_mop_cty[fips_names_mop %in% above_med_cts_mop_pct75,,]
+plot_taus_df_0_lab_force_rate <- merge(tau_0_lab_force_rate,kindex_0,by=c('fips'))
+plot_taus_df_5_lab_force_rate <- merge(tau_5_lab_force_rate,kindex_0,by=c('fips'))
+plot_taus_df_11_lab_force_rate <- merge(tau_11_lab_force_rate,kindex_0,by=c('fips'))
+plot_taus_df_23_lab_force_rate <- merge(tau_23_lab_force_rate,kindex_0,by=c('fips'))
 
-effects_mop_below_mw_pct90 <- effects_mop_cty[fips_names_mop %in% below_med_cts_mop_pct90,,]
-effects_mop_above_mw_pct90 <- effects_mop_cty[fips_names_mop %in% above_med_cts_mop_pct90,,]
+# plot_taus_0 <- ggplot(plot_taus_df_0) +
+#   geom_point(aes(x=kindex,y=value),color = "deeppink")
+# plot_taus_0 <- plot_taus_0 + theme_classic()
+# plot_taus_0
 
-# Same for pmq
-below_med_cts_pmq_pct10 <- fips_names_pmq[which(kaitz_pct10_pmq_df$above == 0)] 
-above_med_cts_pmq_pct10 <- fips_names_pmq[which(kaitz_pct10_pmq_df$above == 1)] 
 
-below_med_cts_pmq_pct25 <- fips_names_pmq[which(kaitz_pct25_pmq_df$above == 0)]
-above_med_cts_pmq_pct25 <- fips_names_pmq[which(kaitz_pct25_pmq_df$above == 1)] 
 
-below_med_cts_pmq_median <- fips_names_pmq[which(kaitz_median_pmq_df$above == 0)]
-above_med_cts_pmq_median <- fips_names_pmq[which(kaitz_median_pmq_df$above == 1)]
+binsreg(y=value,x=kindex,data=plot_taus_df_0_unemp_rate,ci=T)$data.plot$`Group Full Sample`
 
-below_med_cts_pmq_pct75 <- fips_names_pmq[which(kaitz_pct75_pmq_df$above == 0)]
-above_med_cts_pmq_pct75 <- fips_names_pmq[which(kaitz_pct75_pmq_df$above == 1)]
+binscatter_df_0_unemp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_0_unemp_rate,ci=T)$data.plot$`Group Full Sample`
+plot_taus_0_unemp_rate_df <- binscatter_df_0_unemp_rate$data.dots
+plot_taus_0_unemp_rate_df <- plot_taus_0_unemp_rate_df |>
+  mutate(
+    ci.l = binscatter_df_0_unemp_rate$data.ci$ci.l,
+    ci.r = binscatter_df_0_unemp_rate$data.ci$ci.r
+  )
 
-below_med_cts_pmq_pct90 <- fips_names_pmq[which(kaitz_pct90_pmq_df$above == 0)]
-above_med_cts_pmq_pct90 <- fips_names_pmq[which(kaitz_pct90_pmq_df$above == 1)]
+plot_taus_0_unemp_rate <- ggplot(plot_taus_0_unemp_rate_df,aes(x=x,y=fit)) +
+  geom_point(color = "deeppink") +
+  geom_line(color = "deeppink") +
+  geom_errorbar(aes(ymin = ci.l, ymax = ci.r),color = "deeppink") +
+  ylim(-0.5,1.5)
+plot_taus_0_unemp_rate <- plot_taus_0_unemp_rate + theme_classic()
+plot_taus_0_unemp_rate
 
-# Split
-effects_pmq_below_mw_pct10 <- effects_pmq_cty[fips_names_pmq %in% below_med_cts_pmq_pct10,,]
-effects_pmq_above_mw_pct10 <- effects_pmq_cty[fips_names_pmq %in% above_med_cts_pmq_pct10,,]
+binscatter_df_5_unemp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_5_unemp_rate)$data.plot$`Group Full Sample`$data.dots
+plot_taus_5_unemp_rate <- ggplot(binscatter_df_5_unemp_rate) +
+  geom_point(aes(x=x,y=fit),color = "deeppink") +
+  geom_line(aes(x=x,y=fit),color = "deeppink") +
+  ylim(-0.5,1.5)
+plot_taus_5_unemp_rate <- plot_taus_5_unemp_rate + theme_classic()
+plot_taus_5_unemp_rate
 
-effects_pmq_below_mw_pct25 <- effects_pmq_cty[fips_names_pmq %in% below_med_cts_pmq_pct25,,]
-effects_pmq_above_mw_pct25 <- effects_pmq_cty[fips_names_pmq %in% above_med_cts_pmq_pct25,,]
+binscatter_df_11_unemp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_11_unemp_rate)$data.plot$`Group Full Sample`$data.dots
+plot_taus_11_unemp_rate <- ggplot(binscatter_df_11_unemp_rate) +
+  geom_point(aes(x=x,y=fit),color = "deeppink") +
+  geom_line(aes(x=x,y=fit),color = "deeppink") +
+  ylim(-0.5,1.5)
+plot_taus_11_unemp_rate <- plot_taus_11_unemp_rate + theme_classic()
+plot_taus_11_unemp_rate
 
-effects_pmq_below_mw_median <- effects_pmq_cty[fips_names_pmq %in% below_med_cts_pmq_median,,]
-effects_pmq_above_mw_median <- effects_pmq_cty[fips_names_pmq %in% above_med_cts_pmq_median,,]
+binscatter_df_23_unemp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_23_unemp_rate)$data.plot$`Group Full Sample`$data.dots
+plot_taus_23_unemp_rate <- ggplot(binscatter_df_23_unemp_rate) +
+  geom_point(aes(x=x,y=fit),color = "deeppink") +
+  geom_line(aes(x=x,y=fit),color = "deeppink") +
+  ylim(-0.5,1.5)
+plot_taus_23_unemp_rate <- plot_taus_23_unemp_rate + theme_classic()
+plot_taus_23_unemp_rate
 
-effects_pmq_below_mw_pct75 <- effects_pmq_cty[fips_names_pmq %in% below_med_cts_pmq_pct75,,]
-effects_pmq_above_mw_pct75 <- effects_pmq_cty[fips_names_pmq %in% above_med_cts_pmq_pct75,,]
 
-effects_pmq_below_mw_pct90 <- effects_pmq_cty[fips_names_pmq %in% below_med_cts_pmq_pct90,,]
-effects_pmq_above_mw_pct90 <- effects_pmq_cty[fips_names_pmq %in% above_med_cts_pmq_pct90,,]
+binscatter_df_0_emp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_0_emp_rate)$data.plot$`Group Full Sample`$data.dots
+plot_taus_0_emp_rate <- ggplot(binscatter_df_0_emp_rate) +
+  geom_point(aes(x=x,y=fit),color = "skyblue") +
+  geom_line(aes(x=x,y=fit),color = "skyblue") +
+  ylim(-1.5,1.0)
+plot_taus_0_emp_rate <- plot_taus_0_emp_rate + theme_classic()
+plot_taus_0_emp_rate
 
-# Plots
+binscatter_df_5_emp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_5_emp_rate)$data.plot$`Group Full Sample`$data.dots
+plot_taus_5_emp_rate <- ggplot(binscatter_df_5_emp_rate) +
+  geom_point(aes(x=x,y=fit),color = "skyblue") +
+  geom_line(aes(x=x,y=fit),color = "skyblue") +
+  ylim(-1.5,1.0)
+plot_taus_5_emp_rate <- plot_taus_5_emp_rate + theme_classic()
+plot_taus_5_emp_rate
 
-state_plot(effects_mop_below_mw,effects_mop_above_mw,window,"mop","unemployment rate")
-state_plot(effects_pmq_below_mw,effects_pmq_above_mw,window,"pmq","unemployment rate")
+binscatter_df_11_emp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_11_emp_rate)$data.plot$`Group Full Sample`$data.dots
+plot_taus_11_emp_rate <- ggplot(binscatter_df_11_emp_rate) +
+  geom_point(aes(x=x,y=fit),color = "skyblue") +
+  geom_line(aes(x=x,y=fit),color = "skyblue") +
+  ylim(-1.5,1.0)
+plot_taus_11_emp_rate <- plot_taus_11_emp_rate + theme_classic()
+plot_taus_11_emp_rate
 
-state_plot(effects_mop_below_mw,effects_mop_above_mw,window,"mop","unemployment")
-state_plot(effects_pmq_below_mw,effects_pmq_above_mw,window,"pmq","unemployment")
+binscatter_df_23_emp_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_23_emp_rate)$data.plot$`Group Full Sample`$data.dots
+plot_taus_23_emp_rate <- ggplot(binscatter_df_23_emp_rate) +
+  geom_point(aes(x=x,y=fit),color = "skyblue") +
+  geom_line(aes(x=x,y=fit),color = "skyblue") +
+  ylim(-1.5,1.0)
+plot_taus_23_emp_rate <- plot_taus_23_emp_rate + theme_classic()
+plot_taus_23_emp_rate
 
-state_plot(effects_mop_below_mw,effects_mop_above_mw,window,"mop","employment")
-state_plot(effects_pmq_below_mw,effects_pmq_above_mw,window,"pmq","employment")
 
-state_plot(effects_mop_below_mw,effects_mop_above_mw,window,"mop","labor force")
-state_plot(effects_pmq_below_mw,effects_pmq_above_mw,window,"pmq","labor force")
+binscatter_df_0_lab_force_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_0_lab_force_rate)$data.plot$`Group Full Sample`$data.dots
+plot_taus_0_lab_force_rate <- ggplot(binscatter_df_0_lab_force_rate) +
+  geom_point(aes(x=x,y=fit),color = "purple") +
+  geom_line(aes(x=x,y=fit),color = "purple") +
+  ylim(-2.2,1.1)
+plot_taus_0_lab_force_rate <- plot_taus_0_lab_force_rate + theme_classic()
+plot_taus_0_lab_force_rate
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010unemprate.png",width = 600, height = 539)
-county_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","unemployment rate")
-dev.off() 
+binscatter_df_5_lab_force_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_5_lab_force_rate)$data.plot$`Group Full Sample`$data.dots
+plot_taus_5_lab_force_rate <- ggplot(binscatter_df_5_lab_force_rate) +
+  geom_point(aes(x=x,y=fit),color = "purple") +
+  geom_line(aes(x=x,y=fit),color = "purple") +
+  ylim(-2.2,1.1)
+plot_taus_5_lab_force_rate <- plot_taus_5_lab_force_rate + theme_classic()
+plot_taus_5_lab_force_rate
 
-county_plot(effects_pmq_below_mw_pct10,effects_pmq_above_mw_pct10,window,"pmq","0.10","unemployment rate")
+binscatter_df_11_lab_force_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_11_lab_force_rate)$data.plot$`Group Full Sample`$data.dots
+plot_taus_11_lab_force_rate <- ggplot(binscatter_df_11_lab_force_rate) +
+  geom_point(aes(x=x,y=fit),color = "purple") +
+  geom_line(aes(x=x,y=fit),color = "purple") +
+  ylim(-2.2,1.1)
+plot_taus_11_lab_force_rate <- plot_taus_11_lab_force_rate + theme_classic()
+plot_taus_11_lab_force_rate
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010unemp.png",width = 600, height = 539)
-county_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","unemployment")
-dev.off() 
+binscatter_df_23_lab_force_rate <- binsreg(y=value,x=kindex,data=plot_taus_df_23_lab_force_rate)$data.plot$`Group Full Sample`$data.dots
+plot_taus_23_lab_force_rate <- ggplot(binscatter_df_23_lab_force_rate) +
+  geom_point(aes(x=x,y=fit),color = "purple") +
+  geom_line(aes(x=x,y=fit),color = "purple") +
+  ylim(-2.2,1.1)
+plot_taus_23_lab_force_rate <- plot_taus_23_lab_force_rate + theme_classic()
+plot_taus_23_lab_force_rate
 
-county_plot(effects_pmq_below_mw_pct10,effects_pmq_above_mw_pct10,window,"pmq","0.10","unemployment")
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010emp.png",width = 600, height = 539)
-county_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","employment")
-dev.off() 
+library(gridExtra)
+grid.arrange(grobs = list(plot_taus_0_unemp_rate,plot_taus_5_unemp_rate,plot_taus_11_unemp_rate,plot_taus_23_unemp_rate), nrow = 1)
+grid.arrange(grobs = list(plot_taus_0_emp_rate,plot_taus_5_emp_rate,plot_taus_11_emp_rate,plot_taus_23_emp_rate), nrow = 1)
+grid.arrange(grobs = list(plot_taus_0_lab_force_rate,plot_taus_5_lab_force_rate,plot_taus_11_lab_force_rate,plot_taus_23_lab_force_rate), nrow = 1)
 
-county_plot(effects_pmq_below_mw_pct10,effects_pmq_above_mw_pct10,window,"pmq","0.10","employment")
+grid.arrange(grobs = list(plot_taus_0_unemp_rate,plot_taus_5_unemp_rate,plot_taus_11_unemp_rate,plot_taus_23_unemp_rate,
+                          plot_taus_0_emp_rate,plot_taus_5_emp_rate,plot_taus_11_emp_rate,plot_taus_23_emp_rate,
+                          plot_taus_0_lab_force_rate,plot_taus_5_lab_force_rate,plot_taus_11_lab_force_rate,plot_taus_23_lab_force_rate), nrow = 3)
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010labforce.png",width = 600, height = 539)
-county_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","labor force")
-dev.off() 
 
-county_plot(effects_pmq_below_mw_pct10,effects_pmq_above_mw_pct10,window,"pmq","0.10","labor force")
+# binsreg(y=value,x=kindex,data=plot_taus_df_1)
+# binsreg(y=value,x=kindex,data=plot_taus_df_2)
+# binsreg(y=value,x=kindex,data=plot_taus_df_3)
+# binsreg(y=value,x=kindex,data=plot_taus_df_4)
+binsreg(y=value,x=kindex,data=plot_taus_df_5)
 
-county_plot(effects_mop_below_mw_pct25,effects_mop_above_mw_pct25,window,"mop","0.25","unemployment rate")
-county_plot(effects_pmq_below_mw_pct25,effects_pmq_above_mw_pct25,window,"pmq","0.25","unemployment rate")
+tau_11_unemp_rate <- as.data.frame(tau_11_unemp_rate)
+names(tau_11_unemp_rate) <- c('fips','value')
+plot_taus_df_11 <- merge(tau_11_unemp_rate,kindex_0,by=c('fips')) 
+binsreg(y=value,x=kindex,data=plot_taus_df_11)
 
-county_plot(effects_mop_below_mw_pct25,effects_mop_above_mw_pct25,window,"mop","0.25","unemployment")
-county_plot(effects_pmq_below_mw_pct25,effects_pmq_above_mw_pct25,window,"pmq","0.25","unemployment")
-
-county_plot(effects_mop_below_mw_pct25,effects_mop_above_mw_pct25,window,"mop","0.25","employment")
-county_plot(effects_pmq_below_mw_pct25,effects_pmq_above_mw_pct25,window,"pmq","0.25","employment")
-
-county_plot(effects_mop_below_mw_pct25,effects_mop_above_mw_pct25,window,"mop","0.25","labor force")
-county_plot(effects_pmq_below_mw_pct25,effects_pmq_above_mw_pct25,window,"pmq","0.25","labor force")
-
-county_plot(effects_mop_below_mw_median,effects_mop_above_mw_median,window,"mop","0.50","employment")
-county_plot(effects_pmq_below_mw_median,effects_pmq_above_mw_median,window,"pmq","0.50")
-
-county_plot(effects_mop_below_mw_pct75,effects_mop_above_mw_pct75,window,"mop","0.75","employment")
-county_plot(effects_pmq_below_mw_pct75,effects_pmq_above_mw_pct75,window,"pmq","0.75")
-
-county_plot(effects_mop_below_mw_pct90,effects_mop_above_mw_pct90,window,"mop","0.90","employment")
-county_plot(effects_pmq_below_mw_pct90,effects_pmq_above_mw_pct90,window,"pmq","0.90")
-
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/comparison_unemprates.png",width = 600, height = 539)
-comparison_plot(effects_mop_above_mw_pct10,effects_mop_above_mw_pct25,effects_mop_above_mw_median,
-                effects_mop_above_mw_pct75,effects_mop_above_mw_pct90,window,"mop","unemployment rate")
-dev.off() 
-
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/comparison_unemp.png",width = 600, height = 539)
-comparison_plot(effects_mop_above_mw_pct10,effects_mop_above_mw_pct25,effects_mop_above_mw_median,
-                effects_mop_above_mw_pct75,effects_mop_above_mw_pct90,window,"mop","unemployment")
-dev.off() 
-
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/comparison_emp.png",width = 600, height = 539)
-comparison_plot(effects_mop_above_mw_pct10,effects_mop_above_mw_pct25,effects_mop_above_mw_median,
-                effects_mop_above_mw_pct75,effects_mop_above_mw_pct90,window,"mop","employment")
-dev.off() 
-
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/comparison_labforce.png",width = 600, height = 539)
-comparison_plot(effects_mop_above_mw_pct10,effects_mop_above_mw_pct25,effects_mop_above_mw_median,
-                effects_mop_above_mw_pct75,effects_mop_above_mw_pct90,window,"mop","labor force")
-dev.off() 
-
-# county[(policies = 2)*(outcomes = 4)*(percentiles = 5)] + state[(policies = 2)*(outcomes = 4)] = 48 potential results
-
-df_densities <- cbind(kaitz_pct10_mop_df$V3,kaitz_pct25_mop_df$V3,kaitz_median_mop_df$V3,kaitz_pct75_mop_df$V3,kaitz_pct90_mop_df$V3)
-df_densities <- as.data.frame(df_densities)
-kaitz_densities_plot(df_densities)
-
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010_dens_unemp_rate.png",width = 600, height = 539)
-joy_division_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","unemployment rate")
-dev.off() 
-
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010_dens_unemp.png",width = 600, height = 539)
-joy_division_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","unemployment")
-dev.off() 
-
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010_dens_emp.png",width = 600, height = 539)
-joy_division_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","employment")
-dev.off() 
-
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop010_dens_labforce.png",width = 600, height = 539)
-joy_division_plot(effects_mop_below_mw_pct10,effects_mop_above_mw_pct10,window,"mop","0.10","labor force")
-dev.off() 
-
+tau_23_unemp_rate <- as.data.frame(tau_23_unemp_rate)
+names(tau_23_unemp_rate) <- c('fips','value')
+plot_taus_df_23 <- merge(tau_23_unemp_rate,kindex_0,by=c('fips')) 
+binsreg(y=value,x=kindex,data=plot_taus_df_23)

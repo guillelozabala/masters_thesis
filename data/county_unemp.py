@@ -71,3 +71,28 @@ for k, i_df in df_dict.items():
 
     i_df_final= i_df.merge(dfips, left_on='fips', right_on='fips')
     i_df_final.to_csv(f'./data/labor_market_outcomes/{k}.csv',sep=',',index=False)
+
+df_emp_rate = df_emp.merge(df_lab_force, on=['fips', 'year', 'month'])
+
+df_emp_rate['value_x'] = pd.to_numeric(df_emp_rate['value_x'], errors='coerce')
+df_emp_rate['value_y'] = pd.to_numeric(df_emp_rate['value_y'], errors='coerce')
+
+df_emp_rate['value'] = round((df_emp_rate['value_x'] / df_emp_rate['value_y'])*100, 1)
+
+df_emp_rate = df_emp_rate.drop('series_id_x',axis=1)
+df_emp_rate = df_emp_rate.drop('series_id_y',axis=1)
+df_emp_rate = df_emp_rate.drop('series_x',axis=1)
+df_emp_rate = df_emp_rate.drop('series_y',axis=1)
+df_emp_rate = df_emp_rate.drop('period_x',axis=1)
+df_emp_rate = df_emp_rate.drop('period_y',axis=1)
+df_emp_rate = df_emp_rate.drop('state_fip_x',axis=1)
+df_emp_rate = df_emp_rate.drop('state_fip_y',axis=1)
+df_emp_rate = df_emp_rate.drop('county_fip_x',axis=1)
+df_emp_rate = df_emp_rate.drop('county_fip_y',axis=1)
+
+df_emp_rate = df_emp_rate.drop('value_x',axis=1)
+df_emp_rate = df_emp_rate.drop('value_y',axis=1)
+
+df_emp_rate = df_emp_rate.merge(dfips, left_on='fips', right_on='fips')
+
+df_emp_rate.to_csv('./data/labor_market_outcomes/employment_rate.csv', sep=',', index=False)
