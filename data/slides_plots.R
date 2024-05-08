@@ -166,7 +166,7 @@ minw_plot <- ggplot(minwg) +
     label = "DC", x = 2018, y = 15, color = "#B79F00", size = 6, family = "serif"
     ) + 
   geom_text(
-    label = "Alabama, Georgia, Idaho...", x = 2016, y = 6.5, color = "#F8766D", size = 6, family = "serif"
+    label = "Federal rate", x = 2016, y = 6.5, color = "#F8766D", size = 6, family = "serif"
     ) +
   xlab(
     ""
@@ -199,7 +199,7 @@ minw_plot_simple <- ggplot(minw_simple) +
     label = "DC", x = 2018, y = 15, color = "#00BA38", size = 5, family = "serif"
     ) + 
   geom_text(
-    label = "Alabama", x = 2016, y = 6.5, color = "#F8766D", size = 5, family = "serif"
+    label = "Federal", x = 2016, y = 6.5, color = "#F8766D", size = 5, family = "serif"
     ) +
   geom_text(
     label = "Minnesota", x = 2019, y = 11, color = "#619CFF", size = 5, family= "serif"

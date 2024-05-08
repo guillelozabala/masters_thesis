@@ -43,8 +43,6 @@ df <- read.csv(
   header=TRUE,
   sep=","
   )
-  
-#df <- df[df$year >= 2003 & df$year <= 2016,]
 
 # Prepare the covariates (as formula)
 names_covar <- names(
@@ -103,9 +101,17 @@ effects_pmq_county = CountyEffects(df = df, policy = policies[2], window = windo
 kaitz_at_treatment_mop = KaitzAtTreatment(df = df, policy = policies[1])
 kaitz_at_treatment_pmq = KaitzAtTreatment(df = df, policy = policies[2])
 
+kaitz_at_treatment_mop <- kaitz_at_treatment_mop |>
+  rename(kaitz_pct50 = kaitz_median)
+
+kaitz_at_treatment_pmq <- kaitz_at_treatment_pmq |>
+  rename(kaitz_pct50 = kaitz_median)
+
 # Plot the distributions of the index at treatment (see data/plots.R)
 densities_plot_mop = KaitzDensitiesPlot(kaitz_at_treatment_mop)
+densities_plot_mop
 densities_plot_pmq = KaitzDensitiesPlot(kaitz_at_treatment_pmq)
+densities_plot_pmq 
 
 # Initialize the list of data frames
 joint_dfs <- list()
@@ -127,9 +133,55 @@ for (outcome in outcomes){
   }
 }
 
-
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_unemp_rate.png",width = 600, height = 539)
 IndividualEffectsPlot(joint_dfs,policies[1],outcomes[1],percentiles[1])
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_emp_rate.png",width = 600, height = 539)
 IndividualEffectsPlot(joint_dfs,policies[1],outcomes[2],percentiles[1])
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_lab_force_rate.png",width = 600, height = 539)
 IndividualEffectsPlot(joint_dfs,policies[1],outcomes[3],percentiles[1])
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_unemp_rate_comp_t1.png",width = 600, height = 539)
+IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[1],"V1")
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_unemp_rate_comp_t24.png",width = 600, height = 539)
+IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[1],"V24")
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_emp_rate_comp_t1.png",width = 600, height = 539)
+IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[2],"V1")
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_emp_rate_comp_t24.png",width = 600, height = 539)
+IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[2],"V24")
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_lab_force_comp_t1.png",width = 600, height = 539)
+IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[3],"V1")
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_lab_force_comp_t24.png",width = 600, height = 539)
+IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[3],"V24")
+dev.off() 
+
+time_averages <- data.frame(unique(df$fips)) 
+colnames(time_averages) <- c("fips")
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_unemp_rate_average.png",width = 600, height = 539)
+TimeAveragesPlot(joint_dfs,time_averages,policies[1],outcomes[1],percentiles[1])
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_emp_rate_average.png",width = 600, height = 539)
+TimeAveragesPlot(joint_dfs,time_averages,policies[1],outcomes[2],percentiles[1])
+dev.off() 
+
+png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_lab_force_average.png",width = 600, height = 539)
+TimeAveragesPlot(joint_dfs,time_averages,policies[1],outcomes[3],percentiles[1])
+dev.off() 
 
 
