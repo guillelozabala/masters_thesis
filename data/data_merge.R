@@ -16,12 +16,6 @@ unemp_rate <- read.csv(
   sep = ","
   )
 
-# unemp <- read.csv(
-#   file.path(getwd(), "labor_market_outcomes/unemployment.csv"),
-#   header = TRUE,
-#   sep = ","
-#   )
-
 emp_rate <- read.csv(
   file.path(getwd(), "labor_market_outcomes/employment_rate.csv"),
   header = TRUE,
@@ -50,7 +44,7 @@ minw_bindgness <- read.csv(
   file.path(getwd(), "sector_wages/county_percentiles.csv"),
   header = TRUE,
   sep = ","
-)
+  )
 
 demographics <- read.csv(
   file.path(getwd(), "demographics/county_demographics.csv"),
@@ -63,6 +57,14 @@ drug_deaths <- read.csv(
   header = TRUE,
   sep = ","
   )
+
+naics <- read.csv(
+  file.path(getwd(), "sector_composition/naics_shares_merged.csv"),
+  header = TRUE,
+  sep = ","
+  )
+
+naics <- naics[,!(names(naics) %in% 'emp')]
 
 # PDMPs
 
@@ -127,6 +129,9 @@ horwitz <- horwitz |>
     first_treatment_mop = (mop_year-1960)*12 + mop_month
     ) 
 
+horwitz_mop <- horwitz[c('state','mop_year','mop_month','first_treatment_mop')]
+horwitz_pmq <- horwitz[c('state','pmq_year','pmq_month','first_treatment_pmq')]
+
 # labor market data
 
 ## Rename, time marker, select and numeric values
@@ -140,10 +145,10 @@ clean_lab_market_data <- function(df){
       state = state_name,
       county = county_name,
       rate = value
-    ) |>
+      ) |>
     mutate(
       time_marker = (year-1960)*12 + month
-    )
+      )
   
   df <- df[,colnames(df) != "state_abbr"]
   
@@ -243,8 +248,7 @@ df <- merge(
     "state",
     "time_marker"
     )
-) 
-
+  ) 
 
 df <- merge(
   df,
@@ -279,12 +283,6 @@ df <- merge(
     "fips"
     ),
   all = T
-  )
-
-df <- merge(
-  df,
-  horwitz,
-  by = "state"
   )
 
 df <- merge(
@@ -350,8 +348,257 @@ df <- rbind(df,df_dc)
 #     indicator_mop = 1*(time_marker >= first_treatment_mop)
 #     )
 
+df_mop <- merge(
+  df,
+  horwitz_mop,
+  by = "state"
+  )
+
+df_pmq <- merge(
+  df,
+  horwitz_pmq,
+  by = "state"
+  )
+
+df <- merge(
+  df,
+  horwitz,
+  by = "state"
+  )
+
+df_mop <- merge(
+  df_mop,
+  naics,
+  by = c(
+    "year",
+    "fips"
+  ),
+  all = T
+  )
+
+df_pmq <- merge(
+  df_pmq,
+  naics,
+  by = c(
+    "year",
+    "fips"
+  ),
+  all = T
+)
+
+df <- merge(
+  df,
+  naics,
+  by = c(
+    "year",
+    "fips"
+  ),
+  all = T
+)
+
 write.csv(
-  df, 
+  df_mop,
+  paste(getwd(),"joined_data_mop.csv",sep = "/"),
+  row.names = F
+  )
+
+write.csv(
+  df_pmq,
+  paste(getwd(),"joined_data_pmq.csv",sep = "/"),
+  row.names = F
+  )
+
+write.csv(
+  df,
   paste(getwd(),"joined_data.csv",sep = "/"),
   row.names = F
   )
+
+
+
+opioid_deaths_yearly <- read.delim(
+  file.path(getwd(), "drugs/Multiple Cause of Death, 1999-2020.txt")
+  )
+
+opioid_deaths_yearly <- opioid_deaths_yearly[,c('State','State.Code','Year','Multiple.Cause.of.death.Code','Deaths')] 
+
+opioid_deaths_yearly <- opioid_deaths_yearly |>
+  group_by(State, State.Code, Year) |>
+  summarize(Deaths = sum(Deaths, na.rm = TRUE))
+
+opioid_deaths_yearly <- opioid_deaths_yearly[2:nrow(opioid_deaths_yearly),]
+
+opioid_deaths_yearly <- opioid_deaths_yearly |>
+  rename(
+    state = State,
+    state_code = State.Code,
+    year = Year,
+    deaths = Deaths
+    )
+
+opioid_deaths_yearly <- merge(
+  opioid_deaths_yearly,
+  horwitz_mop,
+  by = 'state',
+  all = T
+  )
+
+demographics_states <- read.csv(
+  file.path(getwd(), "demographics/county_demographics_states.csv"),
+  header = TRUE,
+  sep = ","
+  )
+
+demographics_states <- cbind(
+  demographics_states[,1:3],
+  demographics_states[, grep("_ratio$", colnames(demographics_states))]
+)
+
+demographics_states[['working_age_pop_weight']] <- demographics_states[['age5_population_ratio']] +
+  demographics_states[['age6_population_ratio']] + demographics_states[['age7_population_ratio']] +
+  demographics_states[['age8_population_ratio']] + demographics_states[['age9_population_ratio']] +
+  demographics_states[['age10_population_ratio']] + demographics_states[['age11_population_ratio']] +
+  demographics_states[['age12_population_ratio']] + demographics_states[['age13_population_ratio']]
+
+demographics_states[['working_age_pop']] <- demographics_states[['working_age_pop_weight']]*demographics_states[['population']]
+
+demographics_states <- demographics_states |>
+  rename(
+    state_code = state_fip
+    )
+
+opioid_deaths_yearly <- merge(
+  opioid_deaths_yearly,
+  demographics_states,
+  by = c('state_code','year'),
+  all = T
+  )
+
+write.csv(
+  opioid_deaths_yearly,
+  paste(getwd(),"opioid_deaths_yearly.csv",sep = "/"),
+  row.names = F
+  )
+
+# PRESCRIPTIONS
+buyer_monthly <- data.frame(matrix(ncol = 5, nrow = 0))
+colnames(buyer_monthly) <- c('buyer_county','buyer_state','year','month','dosage_unit')
+for (year in 2006:2014){
+  buyer_monthly_year <- read.csv(
+    file.path(getwd(), paste0("drugs/buyer_monthly",year,".csv")),
+    header = TRUE,
+    sep = ","
+    )
+  buyer_monthly_year <- buyer_monthly_year[,c('BUYER_COUNTY','BUYER_STATE','year','month','DOSAGE_UNIT')]
+  buyer_monthly_year <- buyer_monthly_year |>
+    rename(
+      buyer_county = BUYER_COUNTY,
+      buyer_state = BUYER_STATE,
+      dosage_unit = DOSAGE_UNIT 
+      )
+  buyer_monthly_year <- buyer_monthly_year |>
+    group_by(buyer_county, buyer_state, year, month) |>
+    summarize(dosage_unit = sum(dosage_unit, na.rm = TRUE))
+  
+  buyer_monthly <- rbind(buyer_monthly,buyer_monthly_year)
+  }
+
+county_fips_prescriptions <- read.csv(
+  file.path(getwd(), paste0("drugs/county_fips.csv")),
+  header = TRUE,
+  sep = ","
+  )
+
+county_fips_prescriptions <- county_fips_prescriptions |>
+  rename(
+    buyer_county = BUYER_COUNTY,
+    buyer_state = BUYER_STATE,
+    fips = countyfips 
+    )
+
+buyer_monthly <- merge(
+  buyer_monthly,
+  county_fips_prescriptions,
+  by = c('buyer_state','buyer_county'),
+  all = T
+  )
+
+# buyer_monthly |> head()
+
+states_prescriptions <- read.csv(
+  file.path(getwd(), paste0("drugs/states.csv")),
+  header = TRUE,
+  sep = ","
+  )
+
+states_prescriptions <- states_prescriptions |>
+  rename(
+    state = State,
+    buyer_state = Abbreviation
+    )
+
+#states_prescriptions |> head()
+
+buyer_monthly <- merge(
+  buyer_monthly,
+  states_prescriptions,
+  by = 'buyer_state'
+  )
+
+buyer_monthly <- buyer_monthly |> 
+  drop_na()
+
+buyer_monthly <- buyer_monthly |>
+  mutate(
+    time_marker = (year-1960)*12 + month
+    )
+
+buyer_monthly <- merge(
+  buyer_monthly,
+  demographics[(demographics[['year']] >= 2006) & (demographics[['year']] <= 2014),],
+  by = c('year','fips')
+  )
+
+buyer_monthly[['dosage_unit_pc']] <- round(buyer_monthly[['dosage_unit']]/buyer_monthly[['population']], 3)
+
+buyer_monthly |> head()
+
+buyer_monthly_mop <- merge(
+  buyer_monthly,
+  horwitz_mop,
+  by = 'state'
+  )
+
+buyer_monthly_pmq <- merge(
+  buyer_monthly,
+  horwitz_pmq,
+  by = 'state'
+  )
+
+buyer_monthly_mop <- merge(
+  buyer_monthly_mop,
+  df_mop[,c('fips','time_marker','kaitz_pct10','kaitz_pct25','kaitz_median','kaitz_pct75','kaitz_pct90')],
+  by = c('time_marker','fips')
+  )
+
+buyer_monthly_pmq <- merge(
+  buyer_monthly_pmq,
+  df_pmq[,c('fips','time_marker','kaitz_pct10','kaitz_pct25','kaitz_median','kaitz_pct75','kaitz_pct90')],
+  by = c('time_marker','fips')
+  )
+
+buyer_monthly_mop |> head()
+buyer_monthly_pmq |> head()
+
+write.csv(
+  buyer_monthly_mop,
+  paste(getwd(),"prescription_monthly_mop.csv",sep = "/"),
+  row.names = F
+  )
+
+write.csv(
+  buyer_monthly_pmq,
+  paste(getwd(),"prescription_monthly_pmq.csv",sep = "/"),
+  row.names = F
+  )
+

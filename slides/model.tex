@@ -1,0 +1,100 @@
+\section{Model}
+
+\begin{transitionframe}
+
+    \rmfamily % Font
+    
+    \begin{center}
+    {\Huge \textbf{\textcolor{white}{Model}}}
+    \end{center}
+  
+\end{transitionframe}
+
+\begin{frame}
+
+    \frametitle{Set Up} % Title
+    \framesubtitle{}  % Subtitle
+    \rmfamily % Font
+
+    An addicted worker faces
+    \vspace{9pt}
+    \begin{wideitemize}
+        \item A health/performance \textcolor{fblu}{cost of opioid consumption} \(O_{it}\)
+        \item This cost depends on \textcolor{fblu}{legal opioids consumption} \(l_{it}\) and \textcolor{fblu}{black market opioids consumption} \(h_{it}\) (say, heroin)
+        \item Which opioid is consumed depends on the \textcolor{fblu}{availability of legal opioids} \(z_{it}\) (\(= 1\) if prescription law is in place)
+        \item I assume that illegal opioids are more harmful than legal opioids 
+        \[h_{it} = l_{it} + \mathcal{C}\]
+    \end{wideitemize}
+
+\end{frame}
+
+\begin{frame}
+
+    \label{decision_making}
+    \frametitle{Policy and decision making} % Title
+    \framesubtitle{}  % Subtitle
+    \rmfamily % Font
+
+    \begin{wideitemize}
+        \item The \textcolor{fblu}{total cost of opioid consumption} is
+        \[
+        O_{it} = z_{t}\left(1-q_{it}\right)h_{it} + (1-z_{t})l_{it}
+        \]
+        where \(q_{it} = 1\) \textcolor{fblu}{if the worker quits opioids}
+        \item The worker quits if
+        
+        \[
+        q_{it} = \mathbbm{1}\{\text{Exp. utility of quitting} \geq \text{Disutility of quitting}\}
+        \]
+
+    \end{wideitemize}
+    \hyperlink{quitting}{\beamerbutton{Quitting}}    
+
+\end{frame}
+
+
+\begin{frame}
+
+    \frametitle{Labor demand} % Title
+    \framesubtitle{}  % Subtitle
+    \rmfamily % Font
+
+    \begin{wideitemize}
+        \item The \textcolor{fblu}{representative firm} maximizes profits
+        \[
+        \pi_{it} = Y_{it} - w_{it}L_{it} \quad \text{s.t} \quad w_t \geq w^{min}_t
+        \]
+        \vspace{-15pt}
+        \item The \textcolor{fblu}{MPL} is given by
+        \[
+        \dfrac{\partial Y_{it}}{\partial L_{it}} = f(\theta_{it}) - \kappa\cdot\mathbbm{1}\{O_{it}\geq o\}
+        \]
+        where \(\theta_{it}\) is the \textcolor{fblu}{worker's ability} and \(\kappa\) captures the \textcolor{fblu}{impact of addiction on productivity}
+    \end{wideitemize}
+
+\end{frame}
+
+
+\begin{frame}
+
+    \frametitle{Impact on labor market outcomes} % Title
+    \framesubtitle{}  % Subtitle
+    \rmfamily % Font
+
+    \begin{wideitemize}
+        \item Assume for the moment that \textcolor{fblu}{the worker cannot quit opioids} and that \(l_{it} < o < h_{it}\)
+        \item Then if the \textcolor{fblu}{minimum wage is binding} (\(w_{t} = w^{min}_t\)) and \textcolor{fblu}{the law is passed} (\(z_t = 1\))
+        \[
+        f(\theta_{it}) - \kappa < w^{min}_t \,\Rightarrow\, \text{unemployment}
+        \]
+        \vspace{-15pt}
+        \item But if the \textcolor{fblu}{minimum wage is not binding} (\(w_{t} >> w^{min}_t\)) 
+        \[
+        f(\theta_{it}) - \kappa = w_t 
+        \]
+        \vspace{-15pt}
+        \item What if the worker can quit opioids?
+    \end{wideitemize}
+    \hyperlink{quitting}{\beamerbutton{Quitting}} 
+\end{frame}
+

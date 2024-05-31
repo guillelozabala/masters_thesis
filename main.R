@@ -23,18 +23,12 @@ setwd(dirname(file_location)) # set path to location
 source(paste(getwd(), "data/utilities.R", sep = "/"))
 source(paste(getwd(), "data/plots.R", sep = "/"))
 
-# Handy strings
-outcomes <- c("unem_rate", "emp_rate","lab_force_rate")
-policies <- c("mop","pmq")
 percentiles <- c("0.10", "0.25", "0.50", "0.75", "0.90")
-
-# One-side length of effects considered
-window = 24 # two years
 
 # Load the data
 data_location <- paste(
   getwd(),
-  "data/joined_data.csv",
+  "data/joined_data_mop.csv",
   sep = "/"
   )
 
@@ -46,142 +40,337 @@ df <- read.csv(
 
 # Prepare the covariates (as formula)
 names_covar <- names(
-  df[,grep("_ratio$", colnames(df))]
+  df[,c(grep("_ratio$", colnames(df)),
+    grep("scaled_model_values", colnames(df)))]
   )
-
-names_covar <- c(names_covar,"scaled_model_values")
 
 covariates <- paste(
   names_covar,
   collapse = " + "
   )
 
-# Select not yet treated counties
-not_yet_treated_mop <- df[df[["time_marker"]] < df$first_treatment_mop,] # mop
-not_yet_treated_pmq <- df[df[["time_marker"]] < df$first_treatment_pmq,] # pmq
+df[['relative_to_treat_mop']] = df[['time_marker']] - df[['first_treatment_mop']]
+names(df)[names(df) == 'kaitz_median'] <- 'kaitz_pct50'
 
-# First stage regressions, TWFE model:
-# For each policy
-for (policy in policies){
-  # retrieve the not yet treated sample
-  not_yet_treated_df = get(paste0("not_yet_treated_",policy)) 
-  # and for each outcome 
-  for (outcome in outcomes){
-    # regress outcome on fixed effects and covariates,
-    first_stage <- fixest::feols(
-      stats::as.formula(
-        paste0(outcome," ~ ", covariates, " |", "fips", " + ", "time_marker")
-        ),
-      data = not_yet_treated_df,
-      combine.quick = FALSE,
-      warn = FALSE,
-      notes = FALSE
-      )
-    # then create a column with the predicted values (\hat{y})
-    column_explained <- paste0(outcome, "_hat_", policy)
-    df[[column_explained]] <- stats::predict(
-      first_stage,
-      newdata = df
-      )
-    # and a column with the unexplained part (y - \hat{y})
-    column_unexplained <- paste0(outcome, "_tilde_", policy)
-    df[[column_unexplained]] <- df[[outcome]] - df[[column_explained]] 
-    }
-  }
+#df[['relative_to_treat_pmq']] = df[['time_marker']] - df[['first_treatment_pmq']]
 
-# # Drop never-takers for predictions
-# df_mop <- df[!is.na(df$first_treatment_mop),]
-# df_pmq <- df[!is.na(df$first_treatment_pmq),]
+unem_rate_mop_effects  <- df |>
+  IndEffects(yname = "unem_rate",
+             iname = "fips",
+             tname = "time_marker",
+             kname = "relative_to_treat_mop",
+             aname = "first_treatment_mop",
+             covariates = covariates,
+             only_full_horizon = FALSE)
 
-# Obtain the effects by county (see data/utilities.R)
-effects_mop_county = CountyEffects(df = df, policy = policies[1], window = window)
-effects_pmq_county = CountyEffects(df = df, policy = policies[2], window = window)
+emp_rate_mop_effects  <- df |>
+  IndEffects(yname = "emp_rate",
+             iname = "fips",
+             tname = "time_marker",
+             kname = "relative_to_treat_mop",
+             aname = "first_treatment_mop",
+             covariates = covariates,
+             only_full_horizon = FALSE)
 
-# Obtain the values of the Kaitz-p index at treatment (see data/utilities.R)
-kaitz_at_treatment_mop = KaitzAtTreatment(df = df, policy = policies[1])
-kaitz_at_treatment_pmq = KaitzAtTreatment(df = df, policy = policies[2])
+lab_force_rate_mop_effects  <- df |>
+  IndEffects(yname = "lab_force_rate",
+             iname = "fips",
+             tname = "time_marker",
+             kname = "relative_to_treat_mop",
+             aname = "first_treatment_mop",
+             covariates = covariates,
+             only_full_horizon = FALSE)
 
-kaitz_at_treatment_mop <- kaitz_at_treatment_mop |>
-  rename(kaitz_pct50 = kaitz_median)
-
-kaitz_at_treatment_pmq <- kaitz_at_treatment_pmq |>
-  rename(kaitz_pct50 = kaitz_median)
-
-# Plot the distributions of the index at treatment (see data/plots.R)
-densities_plot_mop = KaitzDensitiesPlot(kaitz_at_treatment_mop)
-densities_plot_mop
-densities_plot_pmq = KaitzDensitiesPlot(kaitz_at_treatment_pmq)
-densities_plot_pmq 
-
-# Initialize the list of data frames
-joint_dfs <- list()
-for (outcome in outcomes){
-  for (policy in policies){
-    ind = which(outcomes == outcome)
-    # Turn the matrices of results to data frames
-    effects_county_df <- get(paste0("effects_",policy,"_county"))[,,ind] |>
-      as.data.frame() |>
-      setNames(
-        c("fips",paste0("V",-24:24))
-        )
-    # Merge them with the Kaitz-p values by using identifiers
-    joint_dfs[[paste0("effects_",policy,"_county_",outcome)]] <- merge(
-      effects_county_df,
-      get(paste0("kaitz_at_treatment_",policy)),
-      by="fips"
-      )
-  }
-}
-
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_unemp_rate.png",width = 600, height = 539)
-IndividualEffectsPlot(joint_dfs,policies[1],outcomes[1],percentiles[1])
+png(filename = paste(getwd(),"slides/mop10_unemp_rate.png",sep = "/"),width = 600, height = 539)
+IndividualEffectsPlot(unem_rate_mop_effects$df_indcp,c(1,6,12,24),percentiles[1])
 dev.off() 
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_emp_rate.png",width = 600, height = 539)
-IndividualEffectsPlot(joint_dfs,policies[1],outcomes[2],percentiles[1])
+png(filename = paste(getwd(),"slides/mop10_emp_rate.png",sep = "/"),width = 600, height = 539)
+IndividualEffectsPlot(emp_rate_mop_effects$df_indcp,c(1,6,12,24),percentiles[1])
 dev.off() 
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_lab_force_rate.png",width = 600, height = 539)
-IndividualEffectsPlot(joint_dfs,policies[1],outcomes[3],percentiles[1])
+png(filename = paste(getwd(),"slides/mop10_lab_force_rate.png",sep = "/"),width = 600, height = 539)
+IndividualEffectsPlot(lab_force_rate_mop_effects$df_indcp,c(1,6,12,24),percentiles[1])
 dev.off() 
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_unemp_rate_comp_t1.png",width = 600, height = 539)
-IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[1],"V1")
+png(filename = paste(getwd(),"slides/mop10_unemp_rate_comp_t1.png",sep = "/"),width = 600, height = 539)
+IndividualEffectsCompPlot(unem_rate_mop_effects$df_indcp,1)
 dev.off() 
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_unemp_rate_comp_t24.png",width = 600, height = 539)
-IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[1],"V24")
+png(filename = paste(getwd(),"slides/mop10_emp_rate_comp_t1.png",sep = "/"),width = 600, height = 539)
+IndividualEffectsCompPlot(emp_rate_mop_effects$df_indcp,1)
 dev.off() 
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_emp_rate_comp_t1.png",width = 600, height = 539)
-IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[2],"V1")
+png(filename = paste(getwd(),"slides/mop10_lab_force_rate_comp_t1.png",sep = "/"),width = 600, height = 539)
+IndividualEffectsCompPlot(lab_force_rate_mop_effects$df_indcp,1)
 dev.off() 
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_emp_rate_comp_t24.png",width = 600, height = 539)
-IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[2],"V24")
+png(filename = paste(getwd(),"slides/mop10_unemp_rate_comp_t24.png",sep = "/"),width = 600, height = 539)
+IndividualEffectsCompPlot(unem_rate_mop_effects$df_indcp,24)
 dev.off() 
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_lab_force_comp_t1.png",width = 600, height = 539)
-IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[3],"V1")
+png(filename = paste(getwd(),"slides/mop10_emp_rate_comp_t24.png",sep = "/"),width = 600, height = 539)
+IndividualEffectsCompPlot(emp_rate_mop_effects$df_indcp,24)
 dev.off() 
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_lab_force_comp_t24.png",width = 600, height = 539)
-IndividualEffectsCompPlot(joint_dfs,policies[1],outcomes[3],"V24")
+png(filename = paste(getwd(),"slides/mop10_lab_force_rate_comp_t24.png",sep = "/"),width = 600, height = 539)
+IndividualEffectsCompPlot(lab_force_rate_mop_effects$df_indcp,24)
 dev.off() 
 
-time_averages <- data.frame(unique(df$fips)) 
-colnames(time_averages) <- c("fips")
-
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_unemp_rate_average.png",width = 600, height = 539)
-TimeAveragesPlot(joint_dfs,time_averages,policies[1],outcomes[1],percentiles[1])
+png(filename = paste(getwd(),"slides/mop10_unemp_rate_average.png",sep = "/"),width = 600, height = 539)
+TimeAveragesPlot(unem_rate_mop_effects$df_indcp,percentiles[1],24)
 dev.off() 
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_emp_rate_average.png",width = 600, height = 539)
-TimeAveragesPlot(joint_dfs,time_averages,policies[1],outcomes[2],percentiles[1])
+png(filename = paste(getwd(),"slides/mop10_emp_rate_average.png",sep = "/"),width = 600, height = 539)
+TimeAveragesPlot(emp_rate_mop_effects$df_indcp,percentiles[1],24)
 dev.off() 
 
-png(filename = "C:/Users/guill/Documents/GitHub/masters_thesis/slides/mop10_lab_force_average.png",width = 600, height = 539)
-TimeAveragesPlot(joint_dfs,time_averages,policies[1],outcomes[3],percentiles[1])
+png(filename = paste(getwd(),"slides/mop10_lab_force_rate_average.png",sep = "/"),width = 600, height = 539)
+TimeAveragesPlot(lab_force_rate_mop_effects$df_indcp,percentiles[1],24)
 dev.off() 
 
+png(filename = paste(getwd(),"slides/kaitz_percentiles.png",sep = "/"),width = 600, height = 539)
+KaitzDensitiesPlot(unem_rate_mop_effects$df_indcp)
+dev.off()
 
+
+# Load the data
+data_location_pmq <- paste(
+  getwd(),
+  "data/joined_data_pmq.csv",
+  sep = "/"
+  )
+
+df_pmq <- read.csv(
+  data_location_pmq,
+  header=TRUE,
+  sep=","
+  )
+
+# Prepare the covariates (as formula)
+names_covar_pmq <- names(
+  df_pmq[,c(grep("_ratio$", colnames(df_pmq)),
+        grep("scaled_model_values", colnames(df_pmq)))]
+  )
+
+covariates_pmq <- paste(
+  names_covar_pmq,
+  collapse = " + "
+  )
+
+df_pmq[['relative_to_treat_pmq']] = df_pmq[['time_marker']] - df_pmq[['first_treatment_pmq']]
+names(df_pmq)[names(df_pmq) == 'kaitz_median'] <- 'kaitz_pct50'
+
+unem_rate_pmq_effects  <- df_pmq |>
+  IndEffects(yname = "unem_rate",
+             iname = "fips",
+             tname = "time_marker",
+             kname = "relative_to_treat_pmq",
+             aname = "first_treatment_pmq",
+             covariates = covariates_pmq,
+             only_full_horizon = FALSE)
+
+IndividualEffectsPlot(unem_rate_pmq_effects$df_indcp,c(1,6,12,24),percentiles[1])
+
+emp_rate_pmq_effects  <- df_pmq |>
+  IndEffects(yname = "emp_rate",
+             iname = "fips",
+             tname = "time_marker",
+             kname = "relative_to_treat_pmq",
+             aname = "first_treatment_pmq",
+             covariates = covariates_pmq,
+             only_full_horizon = FALSE)
+
+IndividualEffectsPlot(emp_rate_pmq_effects$df_indcp,c(1,6,12,24),percentiles[1])
+
+lab_force_rate_pmq_effects  <- df_pmq |>
+  IndEffects(yname = "lab_force_rate",
+             iname = "fips",
+             tname = "time_marker",
+             kname = "relative_to_treat_pmq",
+             aname = "first_treatment_pmq",
+             covariates = covariates_pmq,
+             only_full_horizon = FALSE)
+
+IndividualEffectsPlot(lab_force_rate_pmq_effects$df_indcp,c(1,6,12,24),percentiles[1])
+
+# Reformulation
+
+df[['reformulation_date']] = (2010 - 1960)*12 + 4 # April 4, 2010
+df[['relative_to_refor']] = df[['time_marker']] - df[['reformulation_date']]
+
+unem_rate_refor_effects  <- df |>
+  IndEffects(yname = "unem_rate",
+             iname = "fips",
+             tname = "time_marker",
+             kname = "relative_to_refor",
+             aname = "reformulation_date",
+             covariates = covariates,
+             only_full_horizon = FALSE)
+
+emp_rate_refor_effects  <- df |>
+  IndEffects(yname = "emp_rate",
+             iname = "fips",
+             tname = "time_marker",
+             kname = "relative_to_refor",
+             aname = "reformulation_date",
+             covariates = covariates,
+             only_full_horizon = FALSE)
+
+lab_force_rate_refor_effects  <- df |>
+  IndEffects(yname = "lab_force_rate",
+             iname = "fips",
+             tname = "time_marker",
+             kname = "relative_to_refor",
+             aname = "reformulation_date",
+             covariates = covariates,
+             only_full_horizon = FALSE)
+
+IndividualEffectsPlot_Oxy(unem_rate_refor_effects$df_indcp,c(1,6,12,24),percentiles[1])
+IndividualEffectsPlot(emp_rate_refor_effects$df_indcp,c(1,6,12,24),percentiles[1])
+IndividualEffectsPlot(lab_force_rate_refor_effects$df_indcp,c(1,6,12,24),percentiles[1])
+
+prueba <- unem_rate_refor_effects$df_indcp
+prueba[prueba[["relative_to_refor"]] == 1,]
+
+prueba2 <- unem_rate_mop_effects$df_indcp
+prueba2[prueba2[["relative_to_treat_mop"]] == 1,]
+
+# Load the data
+data_location_mortality <- paste(
+  getwd(),
+  "data/opioid_deaths_yearly.csv",
+  sep = "/"
+  )
+
+df_mortality <- read.csv(
+  data_location_mortality,
+  header=TRUE,
+  sep=","
+  )
+
+names_covar_mortality <- names(
+  df_mortality[,grep("_ratio$", colnames(df_mortality))]
+  )
+
+covariates_mortality <- paste(
+  names_covar_mortality,
+  collapse = " + "
+  )
+
+df_mortality[['relative_to_treat_mop']] = df_mortality[['year']] - df_mortality[['mop_year']]
+
+mortality_mop_effects  <- df_mortality |>
+  IndEffects(yname = "deaths",
+             iname = "state_code",
+             tname = "year",
+             kname = "relative_to_treat_mop",
+             aname = "mop_year",
+             covariates = covariates_mortality,
+             only_full_horizon = FALSE)
+
+df_year <- df[df[['month']] == 1, ]
+df_year_kaitz <- df_year[,c('year','state','fips','kaitz_pct10')]
+df_year_kaitz <- df_year_kaitz |>
+  group_by(year,state) |>
+  summarize(kaitz_pct10 = mean(kaitz_pct10, na.rm = TRUE))
+
+df_mort_merged <- merge(mortality_mop_effects$df_indcp, df_year_kaitz, by = c('year','state'))
+df_mort_merged <- df_mort_merged[(df_mort_merged[['year']] >= 2003) & (df_mort_merged[['year']] <= 2016), ]
+binsreg(y = deaths_tilde,
+        x = kaitz_pct10,
+        data = df_mort_merged[!is.infinite(df_mort_merged[['kaitz_pct10']]),], 
+        ci= T)
+
+
+
+# Load the data
+file_location <- rstudioapi::getSourceEditorContext()$path
+setwd(dirname(file_location)) # set path to location
+
+data_location_prescriptions_mop <- paste(
+  getwd(),
+  "data/prescription_monthly_mop.csv",
+  sep = "/"
+  )
+
+df_prescriptions_mop <- read.csv(
+  data_location_prescriptions_mop,
+  header=TRUE,
+  sep=","
+  )
+
+names_covar_prescriptions_mop <- names(
+  df_prescriptions_mop[,grep("_ratio$", colnames(df_prescriptions_mop))]
+  )
+
+covariates_prescriptions_mop <- paste(
+  names_covar_prescriptions_mop,
+  collapse = " + "
+  )
+
+df_prescriptions_mop[['relative_to_treat_mop']] = df_prescriptions_mop[['year']] - df_prescriptions_mop[['mop_year']]
+
+df_prescriptions_mop |> head()
+
+prescriptions_mop_effects  <- df_prescriptions_mop |>
+  IndEffects(yname = "dosage_unit_pc",
+             iname = "fips",
+             tname = "time_marker",
+             kname = "relative_to_treat_mop",
+             aname = "first_treatment_mop",
+             covariates = covariates_prescriptions_mop,
+             only_full_horizon = FALSE)
+
+binsreg(y = dosage_unit_pc_tilde,
+        x = kaitz_pct10,
+        data = prescriptions_mop_effects$df_indcp, 
+        ci= T)
+
+
+data_location_prescriptions_pmq <- paste(
+  getwd(),
+  "data/prescription_monthly_pmq.csv",
+  sep = "/"
+  )
+
+df_prescriptions_pmq <- read.csv(
+  data_location_prescriptions_pmq,
+  header=TRUE,
+  sep=","
+  )
+
+names_covar_prescriptions_pmq <- names(
+  df_prescriptions_pmq[,grep("_ratio$", colnames(df_prescriptions_pmq))]
+  )
+
+covariates_prescriptions_pmq <- paste(
+  names_covar_prescriptions_pmq,
+  collapse = " + "
+  )
+
+df_prescriptions_pmq[['relative_to_treat_pmq']] = df_prescriptions_pmq[['year']] - df_prescriptions_pmq[['pmq_year']]
+
+prescriptions_pmq_effects  <- df_prescriptions_pmq |>
+  IndEffects(yname = "dosage_unit_pc",
+             iname = "fips",
+             tname = "time_marker",
+             kname = "relative_to_treat_pmq",
+             aname = "first_treatment_pmq",
+             covariates = covariates_prescriptions_pmq,
+             only_full_horizon = FALSE)
+
+binsreg(y = dosage_unit_pc_tilde,
+        x = kaitz_pct10,
+        data = prescriptions_pmq_effects$df_indcp, 
+        ci= T)
+
+mop_main_plot <- IndividualEffectsPlot(unem_rate_mop_effects$df_indcp,c(1,6,12,24),percentiles[1],T)
+mop_prescription_plot <- IndividualEffectsPlotPrescriptions(prescriptions_mop_effects$df_indcp,percentiles[1])
+pmq_main_plot <- IndividualEffectsPlot(unem_rate_pmq_effects$df_indcp,c(1,6,12,24),percentiles[1],T)
+pmq_prescription_plot <- IndividualEffectsPlotPrescriptions(prescriptions_pmq_effects$df_indcp,percentiles[1])
+
+grid.arrange(grobs = list(mop_main_plot,mop_prescription_plot),nrow = 2)
+grid.arrange(grobs = list(pmq_main_plot,pmq_prescription_plot),nrow = 2)
+
+# prescriptions fall -> heroin?

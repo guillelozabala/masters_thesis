@@ -1,131 +1,190 @@
 
-CountyEffects <- function(df,policy,window){
+IndEffects <- function(data,
+                       yname,
+                       iname,
+                       tname,
+                       kname,
+                       aname,
+                       covariates,
+                       k_min = 0,
+                       k_max = 24,
+                       compute_var_me = FALSE,
+                       only_full_horizon = TRUE) {
   
-  # df => all counties, not only those for which
-  # policy was implemented
+  object <- PrepData(data, yname, iname, tname, kname, aname, covariates,
+                     k_min, k_max, compute_var_me, only_full_horizon)
+  
+  object <- ComputeProjection(object)
+  
+  return(object)
+}
 
-  if (policy %in% c("mop", "pmq")) {
-    # Define unexplained parts of interest
-    labor_outcomes <- c(paste0("unem_rate_tilde_", policy), 
-                        paste0("emp_rate_tilde_", policy), 
-                        paste0("lab_force_rate_tilde_", policy)
-                        )
-    # As well as the subsample of treated counties
-    df_treated <- df[!is.na(df[[paste0("first_treatment_", policy)]]),]
-  } else {
-    print("Policy must be either mop or pmq")
+PrepData <- function(data,
+                     yname,
+                     iname,
+                     tname,
+                     kname,
+                     aname,
+                     covariates,
+                     k_min = 0,
+                     k_max = 24,
+                     compute_var_me = FALSE,
+                     only_full_horizon = TRUE) {
+  
+  t_min <- data[[tname]] |> min()
+  not_yet_treated <- data[data[[kname]] < k_min, ]
+  
+  if (nrow(not_yet_treated) == 0 || fixest:::cpp_isConstant(not_yet_treated[[yname]])) {
+    return(dplyr::tibble())
   }
   
-  # Get the unique identifiers for both the sample and subsample
-  fips_names <- unique(df$fips)
-  fips_names_treated <- unique(df_treated$fips)
+  first_stage <- fixest::feols(
+    stats::as.formula(
+      paste0(yname," ~ ", covariates, " |", iname, " + ", tname)
+    ),
+    data = not_yet_treated,
+    combine.quick = FALSE,
+    warn = FALSE,
+    notes = FALSE)
   
-  # Initialize array
-  effects_cty <- array(NA, c(length(fips_names), 2*window+2, length(labor_outcomes)))
+  data[[paste0(yname, "_hat")]] <- stats::predict(first_stage, newdata = data)
   
-  # Obtain effects by county
-  for (fip in fips_names_treated){
-    
-    # Get index for element in vector (all counties)
-    ind = which(1*(fips_names == fip) == 1)
-    
-    # Assign county identifier
-    effects_cty[ind,1,] <- fip
-    
-    # Get treatment date for each county
-    treatment_cty <- unique(
-      df_treated[df_treated$fips == fip, paste0("first_treatment_", policy)]
-      )
-    
-    # Create a range around the date of treatment
-    range = (treatment_cty - window):(treatment_cty + window)
-    len_range = length(range)
-    
-    # Obtain the values for the counties in each period within the range
-    avg_effects_cty <- df_treated[(df_treated$fips == i)&(df_treated$time_marker %in% range),] 
-    avg_effects_cty <- avg_effects_cty[order(avg_effects_cty$time_marker),]
-    
-    # Set indices
-    out_ind = 0
-    effs_cols = 2:(2*window+2) 
-    
-    # Iterate over the outcomes of interest
-    for (outcome in labor_outcomes){
-      out_ind = out_ind + 1
-      len_effects = length(avg_effects_cty[[outcome]])
-      if (len_effects == len_range){
-        effects_cty[ind,effs_cols,out_ind] <- matrix(
-          avg_effects_cty[[outcome]],
-          1,
-          len_range)
-      } else if (policy == "mop"){ 
-        # Kentucky was an early adopter 
-        # (mop passed in 07/1999).
-        # to include the available effects we have to 
-        # plug in missing values in the initial periods
-        # (otherwise vector to short to fit the row of
-        # 'effects_mop_state')
-        early_adopters <- rep(NaN,len_range)
-        early_adopters[(len_range - len_effects + 1):len_range] <- avg_effects_cty[[outcome]]
-        effects_cty[ind,effs_cols,out_ind] <- matrix(
-          early_adopters,
-          1,
-          len_range)
-      } else if (policy == "pmq"){ 
-        # in this case we have a lot of late adopters,
-        # so the adjustment is in the other direction
-        late_adopters <- rep(NaN,len_range)
-        late_adopters[1:len_effects] <- avg_effects_cty[[outcome]]
-        effects_cty[ind,effs_cols,out_ind] <- matrix(
-          late_adopters,
-          1,
-          len_range)
-      }
-    } 
-  }
+  data[[paste0(yname, "_tilde")]] <- data[[yname]] -
+    data[[paste0(yname, "_hat")]]
+  
+  df_indcp <- data[!is.na(data[paste0(yname, "_tilde")]), ]
+  
+  t_min <- df_indcp[[tname]] |> min()
+  t_max <- df_indcp[[tname]] |> max()
+  
+  a_min <- df_indcp[[aname]] |> min()
+  a_max <- df_indcp[[aname]] |> max()
+  
+  info <- list(yname = yname,
+               iname = iname,
+               tname = tname,
+               kname = kname,
+               aname = aname,
+               t_min = t_min,
+               t_max = t_max,
+               k_min = k_min,
+               k_max = k_max,
+               a_min = a_min,
+               a_max = a_max,
+               ytildename = paste0(yname, "_tilde"),
+               compute_var_me = compute_var_me,
+               only_full_horizon = only_full_horizon)
+  
+  object <- list(df_indcp = df_indcp, info = info)
+  
+  class(object) <- "indcp"
+  
+  return(object)
+  
+}
 
-  return(effects_cty)
+ComputeProjection <- function(object) {
   
-  }
-
-
-KaitzAtTreatment <- function(df,policy){
+  kname <- object$info$kname
+  aname <- object$info$aname
+  ytildename <- object$info$ytildename
+  k_min <- object$info$k_min
+  k_max <- object$info$k_max
   
-  # df => all counties, not only those for which
-  # policy was implemented
+  # dplyr::between() - This is a shortcut for x >= left & x <= right
+  # dplyr::arrange() - Orders the rows of a data frame by the values of 
   
-  if (policy %in% c("mop", "pmq")) {
-    # Define the subsample of treated counties
-    df_treated <- df[!is.na(df[[paste0("first_treatment_", policy)]]),]
-  } else {
-    print("Policy must be either mop or pmq")
-  }
+  # Aggregated Data by treatment timing
+  object$aggregated <- object$df_indcp |>
+    dplyr::filter(dplyr::between(!!rlang::sym(kname), k_min, k_max)) |>
+    dplyr::summarize(!!paste0("mean_", ytildename) := mean(!!rlang::sym(ytildename)),
+                     !!paste0("sd_", ytildename) := stats::sd(!!rlang::sym(ytildename)),
+                     n = dplyr::n(),
+                     .by = c(aname, kname)) |>
+    dplyr::arrange(!!rlang::sym(aname),
+                   !!rlang::sym(kname))
   
-  # Get the unique identifiers
-  fips_names_treated <- unique(df_treated$fips)
-  
-  # Initizalize dataframe (five percentiles + fips column)
-  kaitz_cty <- data.frame(matrix(nrow = 0, ncol = 6))
-  
-  # Set the names
-  column_indices <- c(grep("fips", colnames(df)), grep("kaitz_", colnames(df)))
-  colnames(kaitz_cty) <- colnames(df[,column_indices])
-  
-  # Obtain indices by county
-  for (fip in fips_names_treated){
+  # Choose only the cohorts with full horizon
+  if (object$info$only_full_horizon) {
+    object$aggregated <- object$aggregated |>
+      dplyr::summarize(n_k = dplyr::n(),
+                       .by = c(aname)) |>
+      dplyr::filter(!!rlang::sym("n_k") == k_max - k_min + 1) |>
+      dplyr::select(-dplyr::any_of("n_k")) |>
+      dplyr::left_join(object$aggregated, by = c(aname))
     
-    # Get treatment date for each county
-    treatment_cty <- unique(
-      df_treated[df_treated$fips == fip, paste0("first_treatment_", policy)]
-    )
-    
-    # Select individual observations at treatment
-    df_at_treatment <- df_treated[(df_treated$fips == fip)&(df_treated$time_marker == treatment_cty),]
-    
-    # Assign Kaitz-p index values and identifiers
-    kaitz_cty <- rbind(kaitz_cty,df_at_treatment[,column_indices])
+    object$info$a_min <- object$aggregated[[aname]] |> min()
+    object$info$a_max <- object$aggregated[[aname]] |> max()
   }
-   
-  return(kaitz_cty) 
+  
+  # Compute Variance of epsilon
+  if (object$info$compute_var_me) {
+    var_epsilon <- VarEpsilonB(object, k_max = k_max)
+    
+    object$aggregated <- object$aggregated |>
+      dplyr::left_join(var_epsilon, by = c(aname, kname)) |>
+      dplyr::mutate(!!paste0("var_", ytildename, "_estimated")
+                    := (!!rlang::sym(paste0("sd_", ytildename)))^2 - (!!rlang::sym("sd_epsilon"))^2,
+                    !!paste0("sd_", ytildename, "_estimated")
+                    := sqrt(dplyr::if_else(!!rlang::sym(paste0("var_", ytildename, "_estimated")) > 0,
+                                           !!rlang::sym(paste0("var_", ytildename, "_estimated")), 0))) |>
+      dplyr::select(-dplyr::any_of(paste0("var_", ytildename, "_estimated")))
+  }
+  
+  return(object)
+}
 
+VarEpsilonB <- function(object, b, k_max) {
+  
+  k_min <- object$info$k_min
+  a_min <- object$info$a_min
+  a_max <- object$info$a_max
+  t_min <- object$info$t_min
+  t_max <- object$info$t_max
+  
+  a_start <- max(a_min, t_min - k_min + 1)
+  a_end <- min(a_max, t_max - k_min - 1 - k_max)
+  
+  if (a_start > a_end) {
+    return(dplyr::tibble())
   }
+  
+  result <- purrr::map2(rep(a_start:a_end, each = k_max - k_min + 1),
+                        rep(k_min:k_max, times = a_end - a_start + 1),
+                        ~VarEpsilonAk(object, .x, .y)) |>
+    purrr::list_rbind()
+  
+  return(result)
+}
+
+VarEpsilonAk <- function(object, a, k) {
+  
+  iname <- object$info$iname
+  tname <- object$info$tname
+  aname <- object$info$aname
+  kname <- object$info$kname
+  ytildename <- object$info$ytildename
+  
+  df_var <- object$df_indcp
+  
+  epsilon_right <- df_var |>
+    dplyr::filter(!!rlang::sym(aname) > a + k,
+                  !!rlang::sym(tname) < a + k) |>
+    dplyr::summarize(epsilon_right = mean(!!rlang::sym(ytildename)),
+                     .by = !!rlang::sym(iname))
+  
+  sum_epsilon <- df_var |>
+    dplyr::filter(!!rlang::sym(aname) > a + k,
+                  !!rlang::sym(tname) == a + k) |>
+    dplyr::left_join(epsilon_right, by = c(iname)) |>
+    dplyr::mutate(epsilon_hat = !!rlang::sym(ytildename) - epsilon_right) |>
+    dplyr::filter(!is.na(!!rlang::sym("epsilon_hat"))) |>
+    dplyr::summarize(sd_epsilon = stats::sd(!!rlang::sym("epsilon_hat")),
+                     n = dplyr::n())
+  
+  result <- dplyr::tibble(!!aname := a,
+                          !!kname := k,
+                          "sd_epsilon" = sum_epsilon$sd_epsilon)
+  return(result)
+  
+}
