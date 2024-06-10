@@ -57,7 +57,7 @@
     \rmfamily % Font
     
     \begin{wideitemize}
-        \item Individual-level event study for different minimum wage quantiles: \textcolor{fgre}{Arkhangelsky, Yanagimoto and Zohar (in progress)}
+        \item Individual-level event study for different minimum wage quantiles: \textcolor{fgre}{Arkhangelsky, Yanagimoto and Zohar (2024)}
     \end{wideitemize}
     
     \begin{equation*}
@@ -67,11 +67,29 @@
     \vspace{9pt}
     \begin{wideitemize}
         \item[\textcolor{fblu}{\textbullet}] \(\textcolor{fblu}{c}\): county, \(\textcolor{fblu}{t}\): time (year-month), \(\textcolor{fblu}{k = t - z_c}\): time difference from PDMP implementation year in county \(\textcolor{fblu}{c}\), \(\textcolor{fblu}{z_c}\)
-        \item[\textcolor{fblu}{\textbullet}] \(\textcolor{fblu}{y_{ct}}\): labor market outcome, \(\textcolor{fblu}{X_{ct}}\): demographic covariates, \(\textcolor{fblu}{\nu_{ct}}\): idiosyncratic shock 
+        \item[\textcolor{fblu}{\textbullet}] \(\textcolor{fblu}{y_{ct}}\): labor market outcome; \(\textcolor{fblu}{X_{ct}}\): demographic covariates, sector shares and drug mortality; \(\textcolor{fblu}{\nu_{ct}}\): idiosyncratic shock 
     \end{wideitemize}
     \vspace{9pt}
     State-level changes must be exogenous at the county level for \textcolor{fblu}{identification} and no anticipation up to \(\textcolor{fblu}{h}\) periods
     
+\end{frame}
+
+\begin{frame}
+
+    \label{lab_force_rate_result}
+    \frametitle{Results} % Title
+    \framesubtitle{}  % Subtitle
+    \rmfamily % Font
+    
+    \begin{center} % 
+        %\includegraphics[scale=0.4]{mop10_lab_force_rate.png}
+        \includegraphics[scale=0.4]{pmq10_lab_for_rate.png}
+    \end{center}
+
+    \hyperlink{perc_comparison_3}{\beamerbutton{Percentiles comparison}}
+    \hyperlink{ta_3}{\beamerbutton{Time average}}
+    \hyperlink{presc_3}{\beamerbutton{Prescriptions}}
+
 \end{frame}
 
 \begin{frame}
@@ -81,12 +99,14 @@
     \framesubtitle{}  % Subtitle
     \rmfamily % Font
     
-    \begin{center}
-        \includegraphics[scale=0.4]{mop10_unemp_rate.png}
+    \begin{center} %pmq10_unemp_rate.png
+        %\includegraphics[scale=0.4]{mop10_unemp_rate.png}
+        \includegraphics[scale=0.4]{pmq10_unemp_rate.png}
     \end{center}
 
     \hyperlink{perc_comparison_1}{\beamerbutton{Percentiles comparison}}
     \hyperlink{ta_1}{\beamerbutton{Time average}}
+    \hyperlink{presc_1}{\beamerbutton{Prescriptions}}
 
 \end{frame}
 
@@ -98,28 +118,30 @@
     \framesubtitle{}  % Subtitle
     \rmfamily % Font
     
-    \begin{center}
-        \includegraphics[scale=0.4]{mop10_emp_rate.png}
+    \begin{center} % pmq10_emp_rate.png
+        %\includegraphics[scale=0.4]{mop10_emp_rate.png}
+        \includegraphics[scale=0.4]{pmq10_emp_rate.png}
     \end{center}
 
     \hyperlink{perc_comparison_2}{\beamerbutton{Percentiles comparison}}
     \hyperlink{ta_2}{\beamerbutton{Time average}}
+    \hyperlink{presc_2}{\beamerbutton{Prescriptions}}
 
 \end{frame}
 
 \begin{frame}
 
-    \label{lab_force_rate_result}
+    \label{heroin_result}
     \frametitle{Results} % Title
     \framesubtitle{}  % Subtitle
     \rmfamily % Font
     
-    \begin{center}
-        \includegraphics[scale=0.4]{mop10_lab_force_rate.png}
+    \begin{center} % pmq10_emp_rate.png
+        %\includegraphics[scale=0.4]{mop10_emp_rate.png}
+        \includegraphics[scale=0.4]{pmq10_heroin.png}
     \end{center}
 
-    \hyperlink{perc_comparison_3}{\beamerbutton{Percentiles comparison}}
-    \hyperlink{ta_3}{\beamerbutton{Time average}}
+    \hyperlink{table_heroin}{\beamerbutton{Coefficients}}
 
 \end{frame}
 

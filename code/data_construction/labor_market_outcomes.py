@@ -106,6 +106,9 @@ df_emp_rate['lab_force'] = pd.to_numeric(df_emp_rate['lab_force'], errors='coerc
 # Calculate the employment rate by dividing the 'value' column by the 'lab_force' column and multiplying by 100
 df_emp_rate['value'] = round((df_emp_rate['value'] / df_emp_rate['lab_force']) * 100, 1)
 
+# Drop unnecessary columns from each DataFrame
+df_emp_rate = df_emp_rate.drop(['series_id', 'series', 'period', 'state_fip', 'county_fip', 'lab_force'], axis=1)    
+
 # Merge the 'df_emp_rate' DataFrame with the 'dfips' DataFrame based on the 'fips' column
 df_emp_rate = df_emp_rate.merge(dfips, left_on='fips', right_on='fips')
 

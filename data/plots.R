@@ -499,6 +499,7 @@ IndividualEffectsPlotPrescriptions <- function(df,percentile){
       color = plot_color
     ) +
     plot_yrange +
+    xlim(-0.8,-0.2) +
     ylab(
       "Individual effects"
     ) + 

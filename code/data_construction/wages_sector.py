@@ -11,7 +11,7 @@ https://www.bls.gov/oes/tables.htm
 columns_to_add = ['h_pct10', 'h_pct25', 'h_pct75', 'h_pct90']
 
 # Get the list of wages files, excluding the sic_files
-xls_wages = [file.replace('data/sector_wages\\', '') for file in glob.glob(r'data/sector_wages/*.xls*')]
+xls_wages = [file.replace('data/source/sector_wages\\', '') for file in glob.glob(r'data/source/sector_wages/*.xls*')]
 sic_files = ['nat3d_sic_1998_dl.xls', 'nat3d_sic_1999_dl.xls', 'nat3d_sic_2000_dl.xls', 'nat3d_sic_2001_dl.xls', 'field_descriptions.xls']
 xls_wages = [x for x in xls_wages if x not in sic_files]
 
