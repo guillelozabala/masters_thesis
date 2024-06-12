@@ -25,7 +25,7 @@
 
 \title{The Opioid Crisis: State Regulations and Labor Market Outcomes \\
 [2ex] \large CEMFI}
-\author{Guillermo Martínez}
+\author{Guillermo Martínez Martínez \\ [2ex] Advisor: Tom Zohar}
 \date{\today}
 
 \begin{document}
@@ -34,7 +34,7 @@
 
 \begin{abstract}
     \noindent
-    While the effects of opioid misuse on the labor market have been studied in detail, little is known about how labor market regulations, particularly the minimum wage, shape this relationship. Do minimum wage rates affect the relationship between opioid misuse and labor market outcomes? To tackle this question, I use the staggered rollout of Must Query Prescription Drug Monitoring Programs (PDMPs) as a source of variation. These policies restrict prescription opioids for those considered to be misusing them, forcing individuals to either quit consumption or switch to black market alternatives. The benefits of quitting opioids depend on the labor market opportunities available to those who withdraw. Through their impact on labor demand, binding minimum wages can reduce the incentives to avoid opioid consumption. I find that labor force participation and unemployment rates increased only where the minimum wage was not binding, while a surge in heroin consumption followed where it was. These results highlight the importance of considering labor market regulations when studying the effects of the opioid crisis on the labor market.
+    While the effects of opioid misuse on the labor market have been studied in detail, little is known about how labor market regulations, particularly the minimum wage, shape this relationship. Do minimum wage rates affect the relationship between opioid misuse and labor market outcomes? To tackle this question, I use the staggered rollout of Must Query Prescription Drug Monitoring Programs (PDMPs) as a source of variation. These policies restrict prescription opioids for those considered to be misusing them, forcing individuals to either quit consumption or switch to illegal alternatives. The benefits of quitting opioids depend on the labor market opportunities available to those who withdraw. Through their negative impact on labor demand, high (binding) minimum wages can reduce the incentives to avoid opioid consumption. I find that labor force participation and unemployment rates increased only where the minimum wage was not binding, while a surge in heroin consumption followed where it was. These results highlight the importance of considering labor market regulations when studying the effects of the opioid crisis on the labor market.
 \end{abstract}
 
 % Pablo Muñoz: clarificar a que me refiero con binding 
@@ -53,14 +53,15 @@ Do minimum wage rates affect the relationship between opioid misuse and labor ma
 
 To measure this relationship, I use the staggered rollout of Must Query Prescription Drug Monitoring Programs (PDMPs) across states.
 These programs require authorized users to check a patient's prescription history before prescribing opioids.
-As these measures effectively combat opioid misuse, they force those who are addicted at the moment the law is passed to either quit opioid consumption or switch to illegal alternatives.
-The incentives to choose one option over the other will depend on the labor market opportunities available to those who withdraw: quitting opioids, although costly and usually painful, has a benefit not only consistent in better health outcomes, but job related too.
-Hence, for those who face a minimum wage strong enough to lower labor demand (binding), the benefits of quitting opioids might be lower than for those who face greater job finding opportunities.
+As these measures effectively combat opioid misuse, they force those who are addicted at the time the law is passed to either quit opioid consumption or switch to illegal alternatives.
+The incentives to choose one option over the other depend on the labor market opportunities available to those who withdraw: quitting opioids, although costly and often painful, offers benefits not only in better health outcomes but also in job prospects. 
+Hence, for those facing a minimum wage high enough to lower labor demand (binding), the benefits of quitting opioids might be lower than for those with greater job opportunities.
 
-To test this hypothesis I regress the county-level labor force participation and unemployment rates on the rollout of PDMPs using an individual effects event study following \textcite{arkhangelsky2024flexible}.
-Critical for identification, I assume that the passing of these state-level policies are exogenous from the point of view of the counties, after controlling for the relevant covariates.
-The distribution of coefficients is then compared to how binding the minimum wage rates are in the different counties.
-After that, I compare the impact of prescription policies on opioid overdose deaths with the same measure of minimum wage bindingness.
+If this argument holds, we should observe an increase in job-searching behavior where the minimum wage is not binding and an increase in illegal opioid consumption where it is.
+To test these hypotheses, I regress county-level labor force participation and unemployment rates on the rollout of PDMPs using an individual effects event study following \textcite{arkhangelsky2024flexible}.
+Critical for identification, I assume that the passing of these state-level policies is exogenous from the point of view of the counties, after controlling for the number of overdose deaths, among other variables.
+I then compare the distribution of coefficients to how binding the minimum wage rates are in the different counties.
+In a second stage, I compare the impact of prescription policies on overdose deaths for different opioids using the same measure of minimum wage bindingness.
 
 The results are striking in several dimensions.
 First, I find that policies aimed at stopping opioid misuse increased participation rates only where the minimum wage was not binding.
@@ -72,6 +73,34 @@ These results shed light on how labor market regulations in general, and minimum
 Moreover, they highlight the importance of blah blah.
 
 \section*{Literature review}
+
+This paper is located at the intersection of three strands of literature.
+
+Large and significant negative impact of prescriptions and misuse on labor outcomes: Aliprantis, Fee, and Schweitzer (2023), Beheshti (2022), Greenwood, Guner and Kopecky (2022) % , Harris et al. (2018)
+Prescription drugs regulations can be effective in reducing opioid misuse: Buchmueller and Carey (2018), Ukert and Polsky (2023)
+Positive relation between legal opioid misuse and heroin deaths: Alpert, Powell, and Pacula (2018), Cicero, Ellis, and Surratt (2012), Cicero and Ellis (2015)
+
+\textbf{Contribution}: shedding light on how the labor effects of the Opioid Crisis have been affected by minimum wage rates
+
+Interest in how labor market regulations interact with Substance Abuse Disorders
+
+\begin{comment}
+
+#### Negative Impact of Opioid Misuse on Labor Outcomes
+
+Extensive research has documented the large and significant negative impact of opioid prescriptions and misuse on labor market outcomes. Aliprantis, Fee, and Schweitzer (2023) highlight how opioid addiction leads to substantial declines in employment rates and labor force participation. Similarly, Beheshti (2022) finds that opioid misuse is linked to reduced work hours and earnings, particularly among low-educated workers. Greenwood, Guner, and Kopecky (2022) show that regions with high opioid prescription rates experience notable reductions in economic productivity and workforce stability. Harris et al. (2018) further corroborate these findings, demonstrating the broad economic costs associated with opioid addiction, including increased unemployment and decreased job-seeking behavior.
+
+#### Effectiveness of Prescription Drug Regulations
+
+Research also indicates that prescription drug regulations can effectively reduce opioid misuse. Buchmueller and Carey (2018) provide evidence that policies limiting opioid prescriptions lead to substantial declines in opioid abuse and related health issues. Ukert and Polsky (2023) build on this work by showing that state-level interventions, such as Prescription Drug Monitoring Programs (PDMPs), significantly decrease the availability of prescription opioids and reduce rates of opioid misuse. These studies collectively suggest that regulatory measures can be an essential tool in combating the opioid crisis.
+
+#### Relationship Between Legal Opioid Misuse and Heroin Deaths
+
+The transition from legal opioid misuse to heroin use has been well-documented, with several studies illustrating a positive relationship between the two. Alpert, Powell, and Pacula (2018) find that restrictions on prescription opioids often lead individuals to seek out heroin as a cheaper and more accessible alternative, resulting in increased heroin overdose deaths. Cicero, Ellis, and Surratt (2012) also identify this substitution effect, noting a significant rise in heroin use following efforts to curtail prescription opioid abuse. Further research by Cicero and Ellis (2015) supports these findings, emphasizing the need for comprehensive approaches that address both prescription and illicit opioid markets to effectively reduce overall opioid-related mortality.
+
+Feel free to adjust the details or add more context based on the specific focus and needs of your paper!
+\end{comment}
+
 
 \section*{Model}
 
@@ -135,6 +164,33 @@ As long as
 we should see (after \(z_{t} = 1\)) an increase in participation rates where the minimum wage is less binding (\(O_{it} = 0\)); an increase in illegal opioid consumption where the minimum wage is more binding (\(O_{it} = h_{it}\)).
 
 \section*{Data}
+
+US Bureau of Labor Statistics (BLS):
+LAUS Database: County-level labor market statistics (1990-2023) % Local Area Unemployment Statistics
+OEWS Database: National industry-specific occupations and wages statistics (1997-2023) % Occupational Employment and Wage Statistics
+
+Eckert et al. (2020): County-level industry-specific employment (1975-2016)
+
+USDOL's Changes in Basic Minimum Wages (1968-2023)
+
+US Census Bureau's Population Estimates Program (PEP) : County-level population and demographics (1969-2020)
+
+DEA's ARCOS : Opioid distribution data (2006-2014)
+
+Horwitz et al. (2020) : Prescription Drug Monitoring Programs (1990-2019)
+
+Centers for Disease Control (CDC):
+National Vital Statistics System: Total drug poisoning mortality by county (2003-2021)
+Multiple Cause of Death: Overdose deaths at the state-year level, for different drugs (1999-2020)
+
+Current working sample:
+LMOs, PDMPs, Minimum Wage rates and demographics for counties of 50 States + DC, 1998-2019
+County-level industry-weighted wage distribution and death mortality for counties of 50 States + DC, 2003-2016
+
+Prescription Drug Monitoring Programs (PDMPs): electronic database that tracks controlled substance prescriptions
+Modern System PDMPs: the electronic database becomes accessible to any authorized user (eg, physician, pharmacist, or member of law enforcement)
+Must Query PDMPs: the law mandates the prescriber to check the database before prescribing a listed opioid
+
 
 \section*{Results}
 
