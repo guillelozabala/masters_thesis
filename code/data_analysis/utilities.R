@@ -10,13 +10,25 @@ IndEffects <- function(data,
                        k_max = 24,
                        compute_var_me = FALSE,
                        only_full_horizon = TRUE) {
-  
-  object <- PrepData(data, yname, iname, tname, kname, aname, covariates,
-                     k_min, k_max, compute_var_me, only_full_horizon)
-  
+
+  object <- PrepData(
+    data,
+    yname,
+    iname,
+    tname,
+    kname,
+    aname,
+    covariates,
+    k_min,
+    k_max,
+    compute_var_me,
+    only_full_horizon
+  )
+
   object <- ComputeProjection(object)
-  
+
   return(object)
+
 }
 
 PrepData <- function(data,
@@ -30,36 +42,36 @@ PrepData <- function(data,
                      k_max = 24,
                      compute_var_me = FALSE,
                      only_full_horizon = TRUE) {
-  
+
   t_min <- data[[tname]] |> min()
   not_yet_treated <- data[data[[kname]] < k_min, ]
-  
+
   if (nrow(not_yet_treated) == 0 || fixest:::cpp_isConstant(not_yet_treated[[yname]])) {
     return(dplyr::tibble())
   }
-  
+
   first_stage <- fixest::feols(
     stats::as.formula(
-      paste0(yname," ~ ", covariates, " |", iname, " + ", tname)
+      paste0(yname, " ~ ", covariates, " |", iname, " + ", tname)
     ),
     data = not_yet_treated,
     combine.quick = FALSE,
     warn = FALSE,
     notes = FALSE)
-  
+
   data[[paste0(yname, "_hat")]] <- stats::predict(first_stage, newdata = data)
-  
+
   data[[paste0(yname, "_tilde")]] <- data[[yname]] -
     data[[paste0(yname, "_hat")]]
-  
+
   df_indcp <- data[!is.na(data[paste0(yname, "_tilde")]), ]
-  
+
   t_min <- df_indcp[[tname]] |> min()
   t_max <- df_indcp[[tname]] |> max()
-  
+
   a_min <- df_indcp[[aname]] |> min()
   a_max <- df_indcp[[aname]] |> max()
-  
+
   info <- list(yname = yname,
                iname = iname,
                tname = tname,

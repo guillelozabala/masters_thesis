@@ -1,0 +1,145 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb,amsfonts,bbm}
+\usepackage{comment}
+\usepackage{hyperref}
+\usepackage[backend=bibtex,style=authoryear]{biblatex}
+
+\addbibresource{refs.bib}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={paper},
+    pdfpagemode=FullScreen,
+}
+
+\setlength{\abovedisplayskip}{3pt}
+\setlength{\belowdisplayskip}{3pt}
+
+\setlength\parindent{0pt}
+\addtolength{\parskip}{2mm}
+
+\title{The Opioid Crisis: State Regulations and Labor Market Outcomes \\
+[2ex] \large CEMFI}
+\author{Guillermo Martínez}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    \noindent
+    While the effects of opioid misuse on the labor market have been studied in detail, little is known about how labor market regulations, particularly the minimum wage, shape this relationship. Do minimum wage rates affect the relationship between opioid misuse and labor market outcomes? To tackle this question, I use the staggered rollout of Must Query Prescription Drug Monitoring Programs (PDMPs) as a source of variation. These policies restrict prescription opioids for those considered to be misusing them, forcing individuals to either quit consumption or switch to black market alternatives. The benefits of quitting opioids depend on the labor market opportunities available to those who withdraw. Through their impact on labor demand, binding minimum wages can reduce the incentives to avoid opioid consumption. I find that labor force participation and unemployment rates increased only where the minimum wage was not binding, while a surge in heroin consumption followed where it was. These results highlight the importance of considering labor market regulations when studying the effects of the opioid crisis on the labor market.
+\end{abstract}
+
+% Pablo Muñoz: clarificar a que me refiero con binding 
+
+\newpage
+
+\section*{Introduction}
+
+For the past two decades, the United States has been facing the worst public health crisis in its recent history.
+The so-called opioid epidemic, characterized by a rising number of deaths due to opioid overdose, has caused more than 680,000 fatalities between 1999 and 2022, mostly among non-college-educated Americans.
+This situation has prompted economists to study the crisis's effects on the labor market.
+However, little is known about how labor market regulations have shaped this relationship.
+Minimum wage rates emerge as a natural candidate for studying this relationship.
+These policies primarily affect the same subpopulation of low-educated workers and have increased with varying intensity during the same period.
+Do minimum wage rates affect the relationship between opioid misuse and labor market outcomes?
+
+To measure this relationship, I use the staggered rollout of Must Query Prescription Drug Monitoring Programs (PDMPs) across states.
+These programs require authorized users to check a patient's prescription history before prescribing opioids.
+As these measures effectively combat opioid misuse, they force those who are addicted at the moment the law is passed to either quit opioid consumption or switch to illegal alternatives.
+The incentives to choose one option over the other will depend on the labor market opportunities available to those who withdraw: quitting opioids, although costly and usually painful, has a benefit not only consistent in better health outcomes, but job related too.
+Hence, for those who face a minimum wage strong enough to lower labor demand (binding), the benefits of quitting opioids might be lower than for those who face greater job finding opportunities.
+
+To test this hypothesis I regress the county-level labor force participation and unemployment rates on the rollout of PDMPs using an individual effects event study following \textcite{arkhangelsky2024flexible}.
+Critical for identification, I assume that the passing of these state-level policies are exogenous from the point of view of the counties, after controlling for the relevant covariates.
+The distribution of coefficients is then compared to how binding the minimum wage rates are in the different counties.
+After that, I compare the impact of prescription policies on opioid overdose deaths with the same measure of minimum wage bindingness.
+
+The results are striking in several dimensions.
+First, I find that policies aimed at stopping opioid misuse increased participation rates only where the minimum wage was not binding.
+Secondly, the increase was short-lived (less than two years), but the impact on unemployment rates was persistent.
+Moreover, their impact on prescription rates seem to be the main, but not the only, driver of these results.
+Finally, prescription policies had no labor market consequences where where the minimum wage was binding, but their impact on heroin deaths was increasing in minimum wage bindingness.
+
+These results shed light on how labor market regulations in general, and minimum wage rates in particular, give rise to heterogeneities in the effects of the opioid crisis on the labor market.
+Moreover, they highlight the importance of blah blah.
+
+\section*{Literature review}
+
+\section*{Model}
+
+An addicted worker \(i\) faces at time \(t\):
+
+\begin{itemize}
+    \item A health/performance cost of opioid consumption: \(O_{it}\)
+    \item This cost depends on legal opioids consumption \(l_{it}\) and black market opioids consumption \(h_{it}\) (say, heroin)
+    \item Which opioid is consumed depends on the availability of legal opioids \(z_{it}\) (\(= 1\) if prescription law is in place)
+    \item I assume that opioid misuse impedes the worker's ability to work
+\end{itemize}
+
+The decision rule of opioid consumption is hence given by:
+
+\[
+    O_{it} = z_{t}\left(1-q_{it}\right)h_{it} + (1-z_{t})l_{it}
+\]
+
+where \(q_{it} = 1\) if she quits opioids. The worker quits if
+        
+\[
+    q_{it} = \mathbbm{1}\{\text{Exp. utility of quitting} \geq \text{Disutility of quitting}\}
+\]
+
+Quitting and looking for a job are equivalent.The market has a job finding rate
+
+\[
+    p_{it} = m_{it}/u_{it} 
+\]
+
+where \(m_{it}\) is the number of matches and \(u_{it}\) is the number of unemployed workers. Matches are a non-decreasing function of vacancies \(v_{it}\)
+
+\[
+    m_{it} = M(v_{it}, u_{it})
+\]
+
+where \(M\left(\cdot \right) \) is a matching function. I assume that more vacancies are open where the minimum wage is less binding (\cite{flinn2010}). It follows that
+
+\[
+    p_{w_{it} > w^{min}_t} \geq p_{w_{it} = w^{min}_t}
+\]
+
+If \(w^{min}_t\) is not binding
+
+\[
+    q_{w_{it} > w^{min}_t} = \mathbbm{1}\{p_{w_{it} > w^{min}_t}\cdot u(w_{it}L_{it}) \geq \mathcal{C}^{quit}\}
+\]
+
+Otherwise
+
+\[
+    q_{w_{it} = w^{min}_t} = \mathbbm{1}\{p_{w_{it} = w^{min}_t}\cdot u(w^{min}_t L_{it}) \geq \mathcal{C}^{quit}\} 
+\]
+
+As long as
+
+\[
+    p_{w_{it} > w^{min}_t}\cdot u(w_{it}L_{it}) > \mathcal{C}^{quit} > p_{w_{it} = w^{min}_t}\cdot u(w^{min}_t L_{it})
+\]
+
+we should see (after \(z_{t} = 1\)) an increase in participation rates where the minimum wage is less binding (\(O_{it} = 0\)); an increase in illegal opioid consumption where the minimum wage is more binding (\(O_{it} = h_{it}\)).
+
+\section*{Data}
+
+\section*{Results}
+
+\section*{Conclusions}
+
+\printbibliography
+
+\end{document}
