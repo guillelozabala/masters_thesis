@@ -1,10 +1,15 @@
 \documentclass[12pt,a4paper]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{graphicx}
-\usepackage{amsmath,amssymb,amsfonts,bbm}
-\usepackage{comment}
+\usepackage{amsmath,amssymb,amsfonts,bbm} % For math
+\usepackage{comment} % Comment blocks
 \usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{booktabs} % For tables
+\usepackage{longtable}
 \usepackage[backend=bibtex,style=authoryear]{biblatex}
+
+\renewcommand{\baselinestretch}{1.25}
 
 \addbibresource{refs.bib}
 
@@ -13,6 +18,7 @@
     linkcolor=blue,
     filecolor=magenta,      
     urlcolor=cyan,
+    citecolor=cyan,
     pdftitle={paper},
     pdfpagemode=FullScreen,
 }
@@ -25,7 +31,7 @@
 
 \title{The Opioid Crisis: State Regulations and Labor Market Outcomes \\
 [2ex] \large CEMFI}
-\author{Guillermo Martínez Martínez \\ [2ex] Advisor: Tom Zohar}
+\author{Guillermo Martínez \\ [2ex] Advisor: Tom Zohar}
 \date{\today}
 
 \begin{document}
@@ -44,158 +50,508 @@
 \section*{Introduction}
 
 For the past two decades, the United States has been facing the worst public health crisis in its recent history.
-The so-called opioid epidemic, characterized by a rising number of deaths due to opioid overdose, has caused more than 680,000 fatalities between 1999 and 2022, mostly among non-college-educated Americans.
-This situation has prompted economists to study the crisis's effects on the labor market.
+The so-called opioid epidemic, characterized by a rising number of deaths due to opioid overdose, has caused more than 680,000 fatalities between 1999 and 2022 (\cite{CDCMCD9920}, \cite{CDCMCD1822}), mostly among non-college-educated Americans.
+The sheer magnitude of this crisis has left a significant footprint on the labor market, prompting economists to study the relationship between opioid misuse and labor market outcomes.
 However, little is known about how labor market regulations have shaped this relationship.
-Minimum wage rates emerge as a natural candidate for studying this relationship.
-These policies primarily affect the same subpopulation of low-educated workers and have increased with varying intensity during the same period.
-Do minimum wage rates affect the relationship between opioid misuse and labor market outcomes?
+Minimum wage rates emerge as a natural candidate for studying this dynamic since they affect the same subpopulation of low-educated workers and have increased with varying intensity during the same period.
 
+%This situation has prompted economists to study the crisis's effects on the labor market.
+%Do minimum wage rates affect the relationship between opioid misuse and labor market outcomes?
+
+\begin{comment}
+    MORITZ:
+    What do you mean by recent? % common in the literature
+    Why so-called? 
+    Is it important that you mention non-college educated people NOW?
+    I think you need a better connection from opioid deaths to the study of labor market regulations
+    I am not sure you have to talk about labor market regulation in general terms at all, you can immediately go into minimum wage rates that is very interesting in its own right % I still need regulations to give a better intuition
+    I think I know the connection between low education levels and minimum wage rates (based on bindingness) but the connection here could be clearer
+    I have questions about the importance of access to opioids in driving the epidemic
+\end{comment}
+
+This paper argues that minimum wage rates affect the relationship between opioid misuse and labor market outcomes.
 To measure this relationship, I use the staggered rollout of Must Query Prescription Drug Monitoring Programs (PDMPs) across states.
 These programs require authorized users to check a patient's prescription history before prescribing opioids.
-As these measures effectively combat opioid misuse, they force those who are addicted at the time the law is passed to either quit opioid consumption or switch to illegal alternatives.
-The incentives to choose one option over the other depend on the labor market opportunities available to those who withdraw: quitting opioids, although costly and often painful, offers benefits not only in better health outcomes but also in job prospects. 
-Hence, for those facing a minimum wage high enough to lower labor demand (binding), the benefits of quitting opioids might be lower than for those with greater job opportunities.
+By effectively combating opioid misuse, these measures force those addicted to either quit opioid consumption or switch to illegal alternatives.
+The incentives to choose one option over the other depend on the labor market opportunities available to those who withdraw. 
+Quitting opioids, although costly and often painful, offers benefits not only in better health outcomes but also in job prospects. 
+However, for those facing a minimum wage high enough to lower labor demand (binding), the benefits of quitting opioids might be lower than for those with greater job opportunities.
+My estimations support this intuition, showing increases in labor force participation and unemployment rates as a result of prescription policies only where the minimum wage was not binding, while a surge in heroin consumption occurred where it was.
 
-If this argument holds, we should observe an increase in job-searching behavior where the minimum wage is not binding and an increase in illegal opioid consumption where it is.
-To test these hypotheses, I regress county-level labor force participation and unemployment rates on the rollout of PDMPs using an individual effects event study following \textcite{arkhangelsky2024flexible}.
-Critical for identification, I assume that the passing of these state-level policies is exogenous from the point of view of the counties, after controlling for the number of overdose deaths, among other variables.
-I then compare the distribution of coefficients to how binding the minimum wage rates are in the different counties.
-In a second stage, I compare the impact of prescription policies on overdose deaths for different opioids using the same measure of minimum wage bindingness.
+%at the time the law is passed
+
+% Condensate the whole background part into a single (two) paragraph
+These findings contribute to the growing body of literature studying the economic effects of the opioid crisis.
+Among this literature, the origins of the epidemic have been widely discussed, with a supply-side view of its origins now largely accepted over a demand-side explanation.
+This perspective has led economists to focus on supply-side interventions to explore the causal relationship between opioid consumption and labor market outcomes.
+While well-intentioned, many of these policies have had unintended consequences, such as the rise in heroin consumption following the reformulation of OxyContin.
+Prescription Drug Monitoring Programs (PDMPs), however, have been less scrutinized, with recent research indicating that, in their more stringent form, they can effectively reduce prescription opioid misuse.
+
+Yet, how heterogenous these effects are across labor markets remains an open question.
+Different incentives can lead victims of opioid misuse to take different decisions regarding both their health and their economic prospects. 
+Labor market regulations, by altering the labor outcomes of workers, influence this decision-making process by affecting the incentives to quit opioids -- a family of drugs that can severely impair the ability to work.
+To understand how these regulations have shaped the ongoing crisis, I focus on minimum wage rates, which have increased in all states at different speeds during the same period as the opioid crisis, thereby affecting the labor market opportunities of low-educated workers.
+Critical to our argument is not the rates themselves, but how binding they are across different labor markets: the more binding the minimum wage, the less incentives workers have to quit opioids, as they face a tougher job market search.
+
+I use several data sources to obtain a distribution of coefficients of the impact of opioid misuse on labor market outcomes across different minimum wage bindingness levels.
+The US Bureau of Labor Statistics (BLS) LAUS database provides county-level labor market statistics, while the US Census Bureau's Population Estimates Program (PEP) offers county-level population and demographic data.
+From \textcite{Horwitz2021} I obtain data on Prescription Drug Monitoring Programs (PDMPs). 
+The BLS's Occupational Employment and Wage Statistics (OEWS) database provides national industry-specific occupations and wages statistics, \textcite{Eckert2020} offers county-level industry-specific employment data, and the US Department of Labor's Changes in Basic Minimum Wages provides information on minimum wage rates; all of these data are relevant for constructing a measure of minimum wage bindingness.
+The Centers for Disease Control (CDC) National Vital Statistics System offers data on total drug poisoning mortality by county, while the CDC's Multiple Cause of Death database provides overdose deaths at the state-year level for different drugs.
+Finally, the Drug Enforcement Administration's Automation of Reports and Consolidated Orders System (ARCOS) offers opioid distribution data.
+The joint panel covers the United states for the period 2003-2016.
 
 The results are striking in several dimensions.
+After constructing a measure of minimum wage bindingness known as the Kaitz-\(\rho\) index, I find that the impact of prescription policies on labor market outcomes is indeed heterogeneous across different levels of minimum wage bindingness.
 First, I find that policies aimed at stopping opioid misuse increased participation rates only where the minimum wage was not binding.
 Secondly, the increase was short-lived (less than two years), but the impact on unemployment rates was persistent.
 Moreover, their impact on prescription rates seem to be the main, but not the only, driver of these results.
 Finally, prescription policies had no labor market consequences where where the minimum wage was binding, but their impact on heroin deaths was increasing in minimum wage bindingness.
 
-These results shed light on how labor market regulations in general, and minimum wage rates in particular, give rise to heterogeneities in the effects of the opioid crisis on the labor market.
-Moreover, they highlight the importance of blah blah.
-
-\section*{Literature review}
-
-This paper is located at the intersection of three strands of literature.
-
-Large and significant negative impact of prescriptions and misuse on labor outcomes: Aliprantis, Fee, and Schweitzer (2023), Beheshti (2022), Greenwood, Guner and Kopecky (2022) % , Harris et al. (2018)
-Prescription drugs regulations can be effective in reducing opioid misuse: Buchmueller and Carey (2018), Ukert and Polsky (2023)
-Positive relation between legal opioid misuse and heroin deaths: Alpert, Powell, and Pacula (2018), Cicero, Ellis, and Surratt (2012), Cicero and Ellis (2015)
-
 \textbf{Contribution}: shedding light on how the labor effects of the Opioid Crisis have been affected by minimum wage rates
 
 Interest in how labor market regulations interact with Substance Abuse Disorders
 
-\begin{comment}
+These results shed light on how labor market regulations in general, and minimum wage rates in particular, give rise to heterogeneities in the effects of the opioid crisis on the labor market.
+Moreover, they highlight the importance of blah blah.
 
-#### Negative Impact of Opioid Misuse on Labor Outcomes
+OUTLINE of the paper (the paper is structured as follows...)
 
-Extensive research has documented the large and significant negative impact of opioid prescriptions and misuse on labor market outcomes. Aliprantis, Fee, and Schweitzer (2023) highlight how opioid addiction leads to substantial declines in employment rates and labor force participation. Similarly, Beheshti (2022) finds that opioid misuse is linked to reduced work hours and earnings, particularly among low-educated workers. Greenwood, Guner, and Kopecky (2022) show that regions with high opioid prescription rates experience notable reductions in economic productivity and workforce stability. Harris et al. (2018) further corroborate these findings, demonstrating the broad economic costs associated with opioid addiction, including increased unemployment and decreased job-seeking behavior.
+\section*{Background: Opioid Crisis and regulatory changes}
 
-#### Effectiveness of Prescription Drug Regulations
+In this section, I provide a summary of how the opioid crisis started and what effects it had on the labor market in general. 
+Then, I discuss some of the policies implemented to curb the opioid misuse, and how some of them resulted ineffective or simply backfired. 
+Finally, I describe how labor market incentives, and in particular minimum wage rates, can explain some of these policy failures and the heterogeneity of the labor market outcomes.
 
-Research also indicates that prescription drug regulations can effectively reduce opioid misuse. Buchmueller and Carey (2018) provide evidence that policies limiting opioid prescriptions lead to substantial declines in opioid abuse and related health issues. Ukert and Polsky (2023) build on this work by showing that state-level interventions, such as Prescription Drug Monitoring Programs (PDMPs), significantly decrease the availability of prescription opioids and reduce rates of opioid misuse. These studies collectively suggest that regulatory measures can be an essential tool in combating the opioid crisis.
+\subsection*{The origins of the opioid epidemic and its impact on the labor market}
 
-#### Relationship Between Legal Opioid Misuse and Heroin Deaths
+% CHECKED
+It is difficult to overstate the importance of the opioid crisis in the United States. 
+In 2022 alone, 110,000 people died from drug abuse, three-quarters of them due to opioids.
+For context, the Vietnam War -- one of the most traumatic events in recent American history -- killed 58.000 US soldiers in total.
+Given the severity of the crisis, it is not surprising that a large body of literature has emerged to study its origins and consequences.
 
-The transition from legal opioid misuse to heroin use has been well-documented, with several studies illustrating a positive relationship between the two. Alpert, Powell, and Pacula (2018) find that restrictions on prescription opioids often lead individuals to seek out heroin as a cheaper and more accessible alternative, resulting in increased heroin overdose deaths. Cicero, Ellis, and Surratt (2012) also identify this substitution effect, noting a significant rise in heroin use following efforts to curtail prescription opioid abuse. Further research by Cicero and Ellis (2015) supports these findings, emphasizing the need for comprehensive approaches that address both prescription and illicit opioid markets to effectively reduce overall opioid-related mortality.
+% CHECKED
+Although demand-side explanations of the crisis exist, with \textcite{Deaton2017} and \textcite{Deaton2015} being some of the most influential, a supply-side view of the epidemic's origins is now widely accepted (\cite{Eichmeyer2022}, \cite{Ruhm2018}). 
+This shift is partly due to mixed evidence on the causal impact of declining economic conditions on opioid consumption (\cite{Currie2018}).
+Moreover, the efforts by pharmaceutical companies and healthcare providers to increase opioid prescriptions since the late 1990s have been well documented (\cite{Alpert2019}, \cite{Kolodny2015}, \cite{VanZee2008}).
+Purdue Pharma's aggressive marketing campaign of OxyContin, a powerful opioid painkiller, is often cited as the starting point of the crisis (\cite{Chow2019}).
 
-Feel free to adjust the details or add more context based on the specific focus and needs of your paper!
-\end{comment}
+% CHECKED
+Economists quickly began studying the effects of the opioid crisis on the labor market.
+In a seminal paper, \textcite{Krueger2017} found that labor force participation rates were falling on greater numbers in areas with higher opioid prescription rates, an analysis later refined by \textcite{Aliprantis2023}.
+This relationship has also been emphasized from a macroeconomic perspective (\cite{Greenwood2022a}, \cite{Greenwood2022b}).
+Many researchers have used exogenous variations in prescription rates to further establish the causal relationship between opioid consumption and worsened labor market outcomes (\cite{Beheshti2023}, \cite{Powell2022}, \cite{Harris2020}).
+These papers typically rely on federal- or state-level regulatory changes implemented in response to the ongoing public health crisis.
+However, none have delved into how labor market regulations can create heterogeneity in these effects.
 
+\subsection*{Policy efforts and unintended consequences}
 
-\section*{Model}
+% CHECKED
+Policy efforts to curb the opioid crisis have been numerous and varied, although not all of them have been equally effective.
+A much-discussed example is the reformulation of OxyContin in 2010, which made the dosage units more difficult to crush or dissolve, thus reducing the drug's abuse potential through non-oral routes.
+This change led to a surge in heroin consumption as users switched to a more readily accessible alternative for misuse (\cite{Alpert2018}, \cite{Evans2019}, \cite{Cicero2012}, \cite{Butler2013}).
+Additionally, the switch to heroin seemed to result in a greater prevalence of blood-borne diseases in the most affected areas (\cite{Beheshti2019}).
+Lastly, there is anectodic evidence that those who did not choose a black market alternative still found ways to make the drug injectable (\cite{Cicero2015}).
 
-An addicted worker \(i\) faces at time \(t\):
+% CHECKED
+Abuse-deterrent formulations were not the only efforts that backfired. 
+For instance, \textcite{Doleac2022} find that increased access to Naloxone (a drug used to reverse opioid overdoses) led to a rise in opioid-related emergency room visits and opioid-related crime. 
+The impact of these policies on opioid-related mortality seems to be restricted to early-adopter states (\cite{Rees2019}).
+Medical marijuana laws (\cite{Powell2018}), Medicare Part D (\cite{Powell2020}), substance abuse treatment availability (\cite{Swensen2015}), and physicians' education (\cite{Schnell2018}) are among the many policies and factors that economists have studied in relation to the opioid epidemic, contributing to a vast body of literature. 
 
-\begin{itemize}
-    \item A health/performance cost of opioid consumption: \(O_{it}\)
-    \item This cost depends on legal opioids consumption \(l_{it}\) and black market opioids consumption \(h_{it}\) (say, heroin)
-    \item Which opioid is consumed depends on the availability of legal opioids \(z_{it}\) (\(= 1\) if prescription law is in place)
-    \item I assume that opioid misuse impedes the worker's ability to work
-\end{itemize}
+% CHECKED
+Fewer concerns have been raised about the unintented consequences of Prescription Drug Monitoring Programs (PDMPs).
+According to the \textcite{CDC2021}, a PDMP is ``\textit{a database that collect information about dispensed prescription drugs.}''.
+The collected data can only be accessed by authorized users (e.g., physicians, pharmacists, or law enforcement members) and is used to identify and prevent drug misuse.
+Although early studies questioned the effectiveness of these programs in reducing opioid misuse (\cite{Paulozzi2011}, \cite{Maughan2015}, \cite{Meara2016}) and the effectiveness of supply-side interventions in drug-related policies is mixed (\cite{Pollack2014}, \cite{Dobkin2019}, \cite{Dobkin2014}), more recent work has found that in states where prescribers are mandated to check the database before prescribing a listed opioid, the number of opioid misuse cases related to prescription opioids decreased (\cite{Buchmueller2018}, \cite{Sacks2021}, \cite{Grecu2019}).
+These more stringent PDMPs, known as Must Query PDMPs, therefore offer a unique opportunity to study the relationship between opioid misuse and labor market outcomes.
+Their staggered rollout across states, combined with the variation at the county level in how binding minimum wage rates are, allows for a quasi-experimental design that can shed light on how labor market regulations shape the effects of the opioid crisis.
+
+\subsection*{Bringing minimum wage rates in}
+
+% CHECKED
+During the same period as the Opioid Crisis, minimum wage rates have been increasing in all states, albeit at different speeds.
+While some states such as California and New York have raised their minimum wage to over \$15 per hour, others have kept it at the federal minimum of \$7.25.
+This spatial and temporal variability makes minimum wage rates a natural candidate to study the mediation of labor market regulations on the relationship between opioid misuse and labor market outcomes. 
+However, its relevance hinges on whether these minimum wage rates affect labor demand.
+
+% CHECKED
+Although the significance of the impact of minimum wages on labor demand has been questioned since \textcite{Card1994} published their seminal paper, recent research shows that minimum wage increases can have negative effects on employment in certain contexts.
+For instance, \textcite{Cengiz2019} found that minimum wage increases in the United States led to a decrease in employment in tradeable sectors.
+This finding is consistent with \textcite{Harasztosi2019}, who observed that the impact on employment is larger in industries where passing costs to consumers is more difficult, using data from Hungary.
+\textcite{Clemens2019} showed that minimum wage increases in the United States led to a decrease in employment in states bound by the federal minimum wage increase during the Great Recession.
+Furthermore, \textcite{Clemens2021} showed that large increases in minimum wages have reduced employment rates among individuals with low levels of education, in accordance with \textcite{Neumark2004},although the effect is negligible for small increases.
+In a recent paper, \textcite{Engbom2022} pointed out that the effect of these increases on employment can be muted by reallocations of workers across firms.
+Crucially, they argue that lower-productivity firms cut vacancy creation and hiring, which in our context could lead to lower job finding rates where the minimum wage is more binding.
+
+% CHECKED
+If relatively high minimum wages reduce labor demand for low-skilled workers, or reduce it in areas where lower-productivity firms are more prevalent, the prospective labor earnings of non-college-educated workers should be lower in these areas.
+This could, in turn, reduce the incentives for opioid addicts to withdraw as prescription drug regulations are passed. 
+The difficult and often painful process of withdrawal might be less appealing compared to opting for illegal alternatives if job opportunities are scarce.
+This intuition, which I formalize in the next section, suggests that the effects of prescription drug regulations on labor market outcomes should be more pronounced in areas where the minimum wage is not binding.
+
+\section*{A model of job searching and opioid consumption}
+
+The following model formalizes the intuition outlined above. 
+An addicted worker \(i\) faces a health/performance cost of opioid consumption \(O_{it}\) at time \(t\).
+This cost depends on whether she consumes prescription/legal opioids \(l_{it}\) or illegal opioids \(h_{it}\) (e.g., heroin).
+The type of opioid consumed depends on the availability of legal opioids \(z_{it}\), which equals 1 if an effective prescription law is in place.
+I assume that opioid misuse impedes the individual's ability to work.
 
 The decision rule of opioid consumption is hence given by:
 
-\[
+\begin{equation}
     O_{it} = z_{t}\left(1-q_{it}\right)h_{it} + (1-z_{t})l_{it}
-\]
+\end{equation}
 
-where \(q_{it} = 1\) if she quits opioids. The worker quits if
-        
-\[
-    q_{it} = \mathbbm{1}\{\text{Exp. utility of quitting} \geq \text{Disutility of quitting}\}
-\]
+where \(q_{it} = 1\) if she quits opioids. 
+Quitting and looking for a job are equivalent in this setting.
 
-Quitting and looking for a job are equivalent.The market has a job finding rate
+From (1), we see that the determinants of the decision to quit are key to understand what happens when a prescription law is passed.
+This will, in turn, depend on the labor market opportunities the individual faces.
+The addicted individual faces a labor market with a job finding rate
 
-\[
-    p_{it} = m_{it}/u_{it} 
-\]
+\begin{equation}
+    p_{c(i)t} = \dfrac{m_{c(i)t}}{u_{c(i)t}}
+\end{equation}
 
-where \(m_{it}\) is the number of matches and \(u_{it}\) is the number of unemployed workers. Matches are a non-decreasing function of vacancies \(v_{it}\)
+where \(m_{c(i)t}\) is the number of matches and \(u_{c(i)t}\) is the number of unemployed workers in the county the agent lives, \(c(i)\). 
+I assume that matches are a non-decreasing function of vacancies \(v_{c(i)t}\)
 
-\[
-    m_{it} = M(v_{it}, u_{it})
-\]
+\begin{equation}
+    m_{c(i)t} = M(v_{c(i)t}, u_{c(i)t})
+\end{equation}
 
-where \(M\left(\cdot \right) \) is a matching function. I assume that more vacancies are open where the minimum wage is less binding (\cite{flinn2010}). It follows that
+where \(M\left(\cdot \right) \) is a matching function. 
+Following \textcite{Flinn2010}, I assume that more vacancies are open where the minimum wage is less binding. 
+Then, it is easy to see that
 
-\[
-    p_{w_{it} > w^{min}_t} \geq p_{w_{it} = w^{min}_t}
-\]
+\begin{equation}
+    p_{\{w_{it} > w^{min}_t\}} \geq p_{\{w_{it} = w^{min}_t\}}
+\end{equation}
 
-If \(w^{min}_t\) is not binding
+that is, the job finding rate the individual faces is higher if the minimum wage is not binding.
 
-\[
-    q_{w_{it} > w^{min}_t} = \mathbbm{1}\{p_{w_{it} > w^{min}_t}\cdot u(w_{it}L_{it}) \geq \mathcal{C}^{quit}\}
-\]
+The decision to quit opioids is hence affected by the minimum wage in the following way:
+If the individual quits, she will look for a job which returns an utility \(u(w_{it}L_{it})\), where \(w_{it}\) is the wage she receives and \(L_{it}\) is the number of hours she works.
+The probability of finding a job is given by the job finding rate.
+If the product of the two is greater than the disutility of quitting, \(\mathcal{C}^{quit}\), the individual will quit.
+Formally
 
-Otherwise
+\begin{equation}
+    q_{it}  = \mathbbm{1}\{p_{{c(i)t}} \cdot u(w_{it}L_{it}) \geq \mathcal{C}^{quit}\}
+\end{equation}
 
-\[
-    q_{w_{it} = w^{min}_t} = \mathbbm{1}\{p_{w_{it} = w^{min}_t}\cdot u(w^{min}_t L_{it}) \geq \mathcal{C}^{quit}\} 
-\]
+Unless a corner solution exists (i.e, the disutility of quitting is greater or lower than the maximum utility the individual can get from working), there must be some wage level such that
 
-As long as
+\begin{equation}
+    p_{\{w_{it} > w^{min}_t\}}\cdot u(w_{it}L_{it}) > \mathcal{C}^{quit} > p_{\{w_{it} = w^{min}_t\}}\cdot u(w^{min}_t L_{it})
+\end{equation}
 
-\[
-    p_{w_{it} > w^{min}_t}\cdot u(w_{it}L_{it}) > \mathcal{C}^{quit} > p_{w_{it} = w^{min}_t}\cdot u(w^{min}_t L_{it})
-\]
+that is, for some wage level, the job finding rate is such that the utility from working is greater than the disutility of quitting.
+Notice that this is irrespective of the differences in levels of wages, since the job finding rate is also playing a role.
 
-we should see (after \(z_{t} = 1\)) an increase in participation rates where the minimum wage is less binding (\(O_{it} = 0\)); an increase in illegal opioid consumption where the minimum wage is more binding (\(O_{it} = h_{it}\)).
+If condition (6) holds, after a prescription law is passed (\(z_{t} = 1\)) we should see an increase in participation rates where the minimum wage is less binding (\(O_{it} = 0\)) but also an increase in illegal opioid consumption where the minimum wage is more binding (\(O_{it} = h_{it}\)).
+We test these hypotheses in the next sections.
 
 \section*{Data}
 
-US Bureau of Labor Statistics (BLS):
-LAUS Database: County-level labor market statistics (1990-2023) % Local Area Unemployment Statistics
-OEWS Database: National industry-specific occupations and wages statistics (1997-2023) % Occupational Employment and Wage Statistics
+To uncover the heterogeneity in the effects of the opioid crisis on the labor market created by minimum wage rates, I use several data sources.
+The result is a panel of county-level data for the United States for the period 2003-2016 that includes labor, demographic and health variables.
+Where monthly data is not available, I use the data available for the year.
+The same holds for the minimum wage rates, which are set at the state level but are inputed to the counties.
 
-Eckert et al. (2020): County-level industry-specific employment (1975-2016)
+\textit{Labor market data and demographics}: I use the US Bureau of Labor Statistics (BLS) Local Area Unemployment Statistics (LAUS) database to obtain county-level labor market statistics. 
+In particular, I obtain monthly data on labor force participation, employment, and unemployment rates at the county level.
+The dataset covers the period 1990-2023. US Census Bureau's Population Estimates Program (PEP) I am able to retrieve demograpic shares at the county-year level, from 1969 to 2020.
+The data gives me the population of each area for each gender, race and origin (hispainc or non-hispanic).
+Moreover, I can obtain the number of people in each of the 19 age groups considered, which is used to construct the labor force participation rate.
 
-USDOL's Changes in Basic Minimum Wages (1968-2023)
+\textit{Minimum wage bindingness}: I use the US Department of Labor's Changes in Basic Minimum Wages to obtain information on minimum wage rates at the state-level, from 1968 to 2023.
+Estimates of the wage distribution at the county level are requiered to construct a measure of minimum wage bindingness, which is outlined in the next section.
+For this purpose, I use the US Bureau of Labor Statistics (BLS) Occupational Employment and Wage Statistics (OEWS) database to obtain national industry-specific occupations and wages statistics.
+This dataset reports the number of workers in each occupation and the 10th, 25th, median, 75th and 90th wage percentiles for each industry, from 1997 to 2023.
+Moreover, I use the data from \textcite{Eckert2020} to obtain county-level industry-specific employment data, from 1975 to 2016.
+These last two datasets have a yearly frequency. 4-digit NAICS codes are used to match the industries across datasets.
 
-US Census Bureau's Population Estimates Program (PEP) : County-level population and demographics (1969-2020)
+\textit{Prescription Drug Monitoring Programs (PDMPs)}: I use data from \textcite{Horwitz2021} to obtain information on Prescription Drug Monitoring Programs (PDMPs) from 1990 to 2019.
+The data is at the state-year level and reports the type of PDMP implemented in each state.
+Table 1 shows the timing of the implementation of Modern System (the last two columns) and Must Query (the first two) PDMPs across states.
+A Modern System PDMP is one where the electronic database becomes accessible to any authorized user, while a Must Query PDMP is one where the law mandates the prescriber to check the database before prescribing a listed opioid.
+This last type of PDMP is the one that is expected to have the most impact on opioid misuse, and the one I employ in the estimations.
 
-DEA's ARCOS : Opioid distribution data (2006-2014)
+\textit{Prescriptions and overdose deaths}: I use data from the Centers for Disease Control (CDC) National Center for Health Statistics (NCHS) to obtain information on total drug poisoning mortality by county, from 2003 to 2021.
+To avoid suppression of data, \textcite{CLMort} employs Hierarchical Bayesian models with spatial and temporal random effects to estimate the number of deaths where the data is not available.
+I further use the Multiple Cause of Death database (\cite{CDCMCD9920}), which reports overdose deaths at the state-year level for different drugs, from 1999 to 2020, to obtain information on overdose deaths related to heroin (T.40.1), methadone (T.40.2), other opioids (T.40.3) and other synthetic narcotics (T.40.4).
+The codes reffer to the Multiple Causes of Death ICD-10 classification. 
+Overdose deaths are identified using the Underlying Cause of Death ICD-10 codes X40-X44, X60-X64, X85, and Y10-Y14.
 
-Horwitz et al. (2020) : Prescription Drug Monitoring Programs (1990-2019)
+Finally, I use the Drug Enforcement Administration's Automation of Reports and Consolidated Orders System (ARCOS) to obtain opioid distribution data, from 2006 to 2014.
+This dataset records the distribution of all Schedule II substances by active ingredient at the 3-digit ZIP code level.
+The data is aggregated at the county-month level.
+The shorter time span does not affect the main specifications, since I use prescription rates only to assure that the PDMPs are effective.
+% Schedule II -> oxycodone and hydrocodone
 
-Centers for Disease Control (CDC):
-National Vital Statistics System: Total drug poisoning mortality by county (2003-2021)
-Multiple Cause of Death: Overdose deaths at the state-year level, for different drugs (1999-2020)
+\section*{Findings: how minimum wages shaped the economic effects of the opioid epidemic}
 
-Current working sample:
-LMOs, PDMPs, Minimum Wage rates and demographics for counties of 50 States + DC, 1998-2019
-County-level industry-weighted wage distribution and death mortality for counties of 50 States + DC, 2003-2016
+This section presents the main results of the paper. 
+I start describing the construction of the Kaitz-\(\rho\) index, which is used to measure the bindingness of the minimum wage.
+Then, I present the main especification of the paper, which is employed to estimate the effects of Prescription Drug Monitoring Programs on labor force participation and unemployment rates.
+The coefficients of the regression are compared across the spatial distribution of minimum wage bindingness measures.
+Finally, I repeat the same exercise using overdose deaths for different opioids as the dependent variable.
 
-Prescription Drug Monitoring Programs (PDMPs): electronic database that tracks controlled substance prescriptions
-Modern System PDMPs: the electronic database becomes accessible to any authorized user (eg, physician, pharmacist, or member of law enforcement)
-Must Query PDMPs: the law mandates the prescriber to check the database before prescribing a listed opioid
+\subsection*{The Kaitz-\(\rho\) index}
 
+The argument outlined above hinges on the assumption that the minimum wage can affect the labor market opportunities of low-educated workers.
+In other words, at least in some areas it must be the case that the minimum wage is an effective, or binding, constraint on the labor market.
+A common approach to measure this bindingness is through the Kaitz-\(\rho\) index, which can be defined as
 
-\section*{Results}
+\begin{equation}
+    \text{\textit{kaitz}}_{ct}(\rho) \equiv \log{w^{\text{\textit{min}}}_{s(c)t}} - \log{w^{\rho}_{ct}}
+\end{equation}
+
+where \(w^{\text{\textit{min}}}_{s(c)t}\) is the minimum wage in the state where the county \(c\) is located at time \(t\), and \(w^{\rho}_{ct}\) is the \(\rho\) percentile of the wage distribution.
+This measure generates an spatial distribution of the bindingness of the minimum wage, which can be used to compare the effects of the opioid crisis across different labor markets.
+Figure 1 shows the distribution of the Kaitz-\(\rho\) index across counties in the United States for the year a Must Query PDMP is implemented in their states, for each of the different percentiles of the wage distribution included in the panel.
+For the main results, I use the 10th percentile, but the findings are similar across the distribution -- the counties for which the minimum wage is more binding with respect to lower percentiles tend to be the same as those for which it is more binding with respect to higher percentiles.
+
+The indices are obtained using the data on the wage distribution at the occupation-industry level, and the shares of employment of each industry in each county. 
+In particular, let \(w^{\rho}_{oit}\) be the percentile \(\rho\) of the wages at the occupation \(o\) in the industry \(i\) at time \(t\). 
+Then
+
+\begin{equation}
+    w^{\rho}_{it} = \sum_{o\in i} \dfrac{e_{oi}}{E_{it}}\,w^{\rho}_{oit}
+\end{equation}
+    
+where \(e_{oi}\) is the number of workers in the occupation \(o\) and \(E_{it}\) is the total number of workers in the industry \(i\) at time \(t\).
+That is, by weighting the wage percentiles by the share of employment of each occupation in the industry, I obtain the wage percentile for the industry.
+After that, I compute
+
+\begin{equation}
+    w^{\rho}_{ct} = \sum_{i\in c} \dfrac{e_{ci}}{E_c}\,w^{\rho}_{it}
+\end{equation}
+
+where \(e_{ci}\) is the number of workers in the industry \(i\) in the county \(c\) and \(E_c\) is the total number of workers in the county.
+\(w^{\rho}_{ct}\) is the wage percentile for the county.
+Finally, the minimum wage rates at the state level are already included in the panel.
+
+\subsection*{Estimation}
+
+The main specification computes individual-level effects following \textcite{Arkhangelsky2024} and has the form
+
+\begin{equation}
+    y_{ct} = \alpha_c + \lambda_t + \sum_{k\geq h}\tau_{ck} + \beta X_{ct} + \nu_{ct}
+\end{equation}
+
+Here, \(y_{ct}\) is a labor market outcome, either the labor force participation rate or the unemployment rate, \(\alpha_c\) are county fixed effects, and \(\lambda_t\) are time fixed (year-month) effects.
+Relative time is represented with \(k = t - z_c\), the time difference of the calendar time from the implementation of a PDMP in the state, represented by \(z_s\).
+\(\tau_{ck}\) are the coefficients of interest and \(\nu_{ct}\) is an idiosyncratic shock.
+
+The covariates \(X_{ct}\) include demographic shares (race, origin, sex and age), sector shares of employment (at the 2-digits NAICS codes), and total drug poisoning mortality, which might be a relevant variable in policy-making.
+Crucial for identification, I assume that the state-level rollout of the PDMPs is exogenous at the county level after conditioning on the covariates.
+Moreover, this strategy requires that there is no anticipation of the policy up to \(h\) periods. 
+I assume no anticipation whatsoever, so that the coefficients are identified from the very start of the policy.
+In this context, this means that no addicted individual decided to look for a job or switch to heroin because of the expected implementation of the PDMP. 
+
+After running (10), a distribution of individual (county-level) coefficients is obtained.
+These coefficients are then compared across the spatial distribution of the Kaitz-\(\rho\) index at the moment of treatment.
+The comparison is made by running a binscatter following \textcite{Cattaneo2024}, which allows for an optimal binning of the data.
+
+\subsection*{Labor force participation rates}
+
+\subsection*{Unemployment rates}
+
+\subsection*{Overdose deaths}
 
 \section*{Conclusions}
 
+\newpage
+
 \printbibliography
+
+\newpage
+
+\begin{longtable}[c]{lcccc}
+    \caption{Prescriber Must Query and Modern Operational PDMPs Dates by State, from Horwitz et al. (2021)} \\
+    \toprule
+    \textbf{State} & \textbf{PMQ Year} & \textbf{PMQ Month} & \textbf{MOP Year} & \textbf{MOP Month} \\
+    \midrule
+    \endfirsthead
+    
+    \caption[]{(continued)} \\
+    \toprule
+    \textbf{State} & \textbf{PMQ Year} & \textbf{PMQ Month} & \textbf{MOP Year} & \textbf{MOP Month} \\
+    \midrule
+    \endhead
+    
+    \midrule \multicolumn{5}{r}{Continued on next page} \\
+    \endfoot
+    
+    \bottomrule
+    \endlastfoot
+
+    Alabama & 2017 & 3 & 2006 & 4 \\
+    Alaska & 2018 & 6 & 2012 & 1 \\
+    Arizona & 2017 & 10 & 2008 & 12 \\
+    Arkansas & 2017 & 8 & 2013 & 5 \\
+    California & 2018 & 10 & 2009 & 9 \\
+    Colorado & - & - & 2008 & 2 \\
+    Connecticut & 2015 & 10 & 2008 & 7 \\
+    Delaware & - & - & 2012 & 8 \\
+    District of Columbia & - & - & 2016 & 10 \\
+    Florida & 2018 & 7 & 2011 & 10 \\
+    Georgia & 2018 & 7 & 2013 & 5 \\
+    Hawaii & 2018 & 7 & 2012 & 2 \\
+    Idaho & - & - & 2008 & 4 \\
+    Illinois & 2018 & 1 & 2009 & 12 \\
+    Indiana & - & - & 2007 & 7 \\
+    Iowa & 2018 & 7 & 2009 & 3 \\
+    Kansas & - & - & 2011 & 4 \\
+    Kentucky & 2012 & 7 & 1999 & 7 \\
+    Louisiana & 2014 & 8 & 2009 & 1 \\
+    Maine & 2017 & 1 & 2005 & 1 \\
+    Maryland & 2018 & 7 & 2013 & 12 \\
+    Massachusetts & 2014 & 12 & 2011 & 1 \\
+    Michigan & 2018 & 6 & 2003 & 1 \\
+    Minnesota & - & - & 2010 & 4 \\
+    Mississippi & - & - & 2008 & 7 \\
+    Missouri & - & - & - & - \\
+    Montana & - & - & 2012 & 10 \\
+    Nebraska & - & - & 2017 & 1 \\
+    Nevada & 2015 & 10 & 2011 & 2 \\
+    New Hampshire & 2016 & 5 & 2014 & 10 \\
+    New Jersey & 2015 & 11 & 2012 & 1 \\
+    New Mexico & 2013 & 2 & 2005 & 8 \\
+    New York & 2013 & 8 & 2013 & 6 \\
+    North Carolina & 2017 & 6 & 2007 & 7 \\
+    North Dakota & 2018 & 1 & 2008 & 10 \\
+    Ohio & 2015 & 4 & 2006 & 10 \\
+    Oklahoma & 2015 & 11 & 2006 & 7 \\
+    Oregon & - & - & 2011 & 9 \\
+    Pennsylvania & 2015 & 6 & 2016 & 8 \\
+    Rhode Island & 2016 & 6 & 2012 & 9 \\
+    South Carolina & 2017 & 5 & 2008 & 2 \\
+    South Dakota & - & - & 2012 & 3 \\
+    Tennessee & 2013 & 4 & 2010 & 1 \\
+    Texas & 2019 & 9 & 2012 & 8 \\
+    Utah & 2018 & 5 & 2006 & 1 \\
+    Vermont & 2013 & 11 & 2009 & 1 \\
+    Virginia & 2015 & 7 & 2006 & 6 \\
+    Washington & - & - & 2012 & 1 \\
+    West Virginia & 2012 & 6 & 2013 & 5 \\
+    Wisconsin & 2017 & 4 & 2013 & 6 \\
+    Wyoming & - & - & 2013 & 7 \\
+
+\end{longtable}
+
+\newpage
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{kaitz_percentiles.png}
+    \caption{Only treated states are included in the sample. The figure shows the distribution of the Kaitz-\(\rho\) index across counties in the United States for the year a Must Query PDMP is implemented in their states. As lower percentiles from the wage distribution are considered, the minimum wage is more binding.}
+    \label{fig:kaitz_perc}
+\end{figure}
+
+\newpage
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_lab_for_rate.png}
+    \caption{}
+    \label{fig:lab_for_rate}
+\end{figure}
+
+\newpage
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_lab_for_rate_ta.png}
+    \caption{}
+    \label{fig:lab_for_rate_ta}
+\end{figure}
+
+\newpage
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_prescriptions.png}
+    \caption{}
+    \label{fig:prescriptions}
+\end{figure}
+
+\newpage
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_unemp_rate.png}
+    \caption{}
+    \label{fig:unemp_rate}
+\end{figure}
+
+\newpage
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_unemp_rate_ta.png}
+    \caption{}
+    \label{fig:unemp_rate_ta}
+\end{figure}
+
+\newpage
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_heroin.png}
+    \caption{}
+    \label{fig:drugs}
+\end{figure}
+
+\newpage
+
+\section*{Appendix}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_lab_for_rate_p.png}
+    \caption{}
+    \label{fig:lab_for_rate_p}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_lab_for_rate_comp6.png}
+    \caption{}
+    \label{fig:lab_for_rate_comp6}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_lab_for_rate_comp24.png}
+    \caption{}
+    \label{fig:lab_for_rate_comp24}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_unemp_rate_p.png}
+    \caption{}
+    \label{fig:unemp_rate_p}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_unemp_rate_comp6.png}
+    \caption{}
+    \label{fig:unemp_rate_comp6}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pmq10_unemp_rate_comp24.png}
+    \caption{}
+    \label{fig:unemp_rate_comp24}
+\end{figure}
 
 \end{document}
