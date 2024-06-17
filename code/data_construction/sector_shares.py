@@ -55,9 +55,11 @@ for naic, df in data_naics.items():
     data_naics[naic].columns = data_naics[naic].columns.droplevel().rename(None)
     data_naics[naic] = data_naics[naic].reset_index()
     data_naics[naic].columns = 'emp_' + data_naics[naic].columns + '_ratio'
+    data_naics[naic] = data_naics[naic].rename({'emp_year_ratio' : 'year', 'emp_fips_ratio' : 'fips'}, axis=1)
+    data_naics[naic]['state_code'] = data_naics[naic]['fips'].str[:2]
+    data_naics[naic]['county_code'] = data_naics[naic]['fips'].str[2:]
 
-#data_naics['four_naics_02to05']
-# RENAME WHEN WIFI AVAILABLE
+data_naics['four_naics_02to05']
 
 # Save the dataframes as CSV files
 data_naics['four_naics_02to05'].to_csv(r'./data/intermediate/sector_shares/naics_shares_02to05.csv', sep=',', index=False)
@@ -71,9 +73,6 @@ naics_shares_11to16 = spark.createDataFrame(data_naics['four_naics_11to16'])
 
 # Union the Spark DataFrames
 naics_shares = naics_shares_02to05.union(naics_shares_06to10).union(naics_shares_11to16)
-
-# Drop the 'emp' column
-#naics_shares = naics_shares.drop('emp')
 
 # Save the merged DataFrame as a CSV file
 naics_shares.toPandas().to_csv(r'./data/intermediate/sector_shares/naics_shares_merged.csv', sep=',', index=False)

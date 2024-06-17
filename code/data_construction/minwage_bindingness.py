@@ -1,5 +1,3 @@
-import pandas as pd
-
 # Load data_naics dictionary
 data_naics = dict()
 naics_df = ['four_naics_02to05', 'four_naics_06to10', 'four_naics_11to16']

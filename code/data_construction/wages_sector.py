@@ -1,7 +1,3 @@
-import pandas as pd
-import glob
-import re
-
 '''
 https://www.bls.gov/oes/tables.htm
 

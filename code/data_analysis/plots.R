@@ -1,15 +1,14 @@
 KaitzDensitiesPlot <- function(df) {
 
   # Define the plot title
-  plot_title <- "Distribution of Kaitz-p indices across counties, 
-  for different percentiles at treatment"
+  plot_title <- "Distribution of Kaitz-p indices across counties, for different \n percentiles at treatment (Must Query PDMP)"
 
   # Get the column names of the dataframe
   df_colnames <- df |> colnames()
 
   # Filter the dataframe to include only observations at treatment
   rel_to_treat_name <- df_colnames[grep("relative_to_treat_", df_colnames)]
-  df <- df[df[[rel_to_treat_name]] == 0,]
+  df <- df[df[[rel_to_treat_name]] == 0, ]
 
   # Define the colors for the density plots
   density_colors <- c(
@@ -61,8 +60,8 @@ KaitzDensitiesPlot <- function(df) {
     theme_classic() +
     theme(
       text = element_text(size = 16, family = "serif"),
-      plot.title = element_markdown(lineheight = 1.1),
-      legend.position = c(0.15, 0.80)
+      plot.title = element_text(hjust = 0.5, lineheight = 1.1),
+      legend.position = c(0.10, 0.80)
       )
 
   return(densities_plot)
@@ -104,9 +103,9 @@ TitleAndColors <- function(policy, outcome, percentile) {
     plot_color <- "#0098e9"
     plot_yrange <- ylim(-0.01, 0.01)
   } else if (outcome == "dosage_unit_pc") {
-    outcome_title <- "prescriptions_pc"
+    outcome_title <- "prescriptions per capita"
     plot_color <- "#0098e9"
-    plot_yrange <- ylim(-3.0, 3.0)
+    plot_yrange <- ylim(-1.5, 0.5)
   } else if (outcome == "deaths_pc") {
     outcome_title <- "opioid deaths_pc"
     plot_color <- "#0098e9"
@@ -159,6 +158,7 @@ IndividualEffectsPlot <- function(df,
 
   # Create an empty list to store the plots
   plot_collection <- list()
+  bins_collection <- list()
 
   for (period in periods){
 
@@ -166,8 +166,13 @@ IndividualEffectsPlot <- function(df,
     plot_data <- df[df[[paste0("relative_to_treat_", policy)]] == period, ]
 
     # Perform binscatter regression
-    binscatter <- binsreg::binsreg(y = plot_data[[outcome_name]],
-      x = plot_data[[percentile_name]], data = plot_data, ci = TRUE)
+    binscatter <- binsreg::binsreg(
+      y = plot_data[[outcome_name]],
+      x = plot_data[[percentile_name]],
+      data = plot_data,
+      ci = TRUE,
+      noplot = TRUE
+    )
 
     # Extract the binscatter data
     binscatter_data <- binscatter$data.plot$`Group Full Sample`$data.bin
@@ -249,6 +254,7 @@ IndividualEffectsPlot <- function(df,
 
     # Store the plot
     plot_collection[[paste0("plot_", period)]] <- plot
+    bins_collection[[paste0("bins_", period)]] <- bins_plot_df
 
   }
 
@@ -292,11 +298,11 @@ IndividualEffectsPlot <- function(df,
     top = lab_top
   )
 
-  return(plot_grid)
+  return(c(plot_grid,bins_collection))
 
 }
 
-TimeAveragesPlot <- function(df, percentile, up_to) {
+TimeAveragesPlot <- function(df, percentile, up_to, with_data = FALSE) {
 
   # Get the column names of the dataframe
   df_colnames <- df |> colnames()
@@ -357,7 +363,8 @@ TimeAveragesPlot <- function(df, percentile, up_to) {
     y = df_plot[["average"]],
     x = df_plot[[percentile_name]],
     data = df_plot,
-    ci = TRUE
+    ci = TRUE,
+    noplot = TRUE
     )
 
   # Extract the data for the bins
@@ -434,7 +441,11 @@ TimeAveragesPlot <- function(df, percentile, up_to) {
       plot.title = element_text(hjust = 0.5)
     )
 
-  return(plot)
+  if (with_data == TRUE) {
+    return(c(plot, binscatter_plot_df))
+  } else {
+    return(plot)
+  }
 
 }
 
@@ -482,7 +493,8 @@ IndividualEffectsCompPlot <- function(df, period, percentiles) {
     bin_plot <- binsreg::binsreg(
     y = plot_data[[outcome_name]],
     x = plot_data[[percentile_name]],
-    data = plot_data
+    data = plot_data,
+    noplot = TRUE
     )
 
     # Extract the data points for the bins
@@ -586,89 +598,7 @@ IndividualEffectsCompPlot <- function(df, period, percentiles) {
   plot <- plot +
     theme_classic() +
     theme(
-      text = element_text(size = 16, family="serif"), 
-      plot.title = element_text(hjust = 0.5)
-    )
-
-  return(plot)
-
-}
-
-
-
-IndividualEffectsPlotPrescriptions <- function(df,percentile){
-  
-  df_colnames <- df |> colnames()
-  
-  # Obtain the policy from treatment name
-  policy_name <- df_colnames[grep("first_treatment_", colnames(df))]
-  policy <- sub("first_treatment_", "", policy_name)
-  
-  # Obtain the outcome from dependend name
-  outcome_name <- "dosage_unit_pc_tilde"
-  outcome <- "dosage_unit_pc"
-  
-  naming <- TitleAndColors(policy, "unem_rate", percentile)
-  
-  percentile_name = naming[[1]]
-  plot_color = naming[[2]]
-  plot_yrange <- ylim(-0.15,0.15)
-  policy_title  = naming[[4]]
-  outcome_title = naming[[5]]
-  
-  plot_data <- df
-  
-  binscatter <- binsreg(y = plot_data[[outcome_name]],
-                        x = plot_data[[percentile_name]],
-                        data = plot_data,
-                        ci = T)
-  
-  binscatter_data <- binscatter$data.plot$`Group Full Sample`$data.bin
-  
-  allocation <- matrix(0, nrow(binscatter_data), 4)
-  
-  for (i in 1:nrow(binscatter_data)){
-    c_interv <- plot_data[(plot_data[[percentile_name]] >= binscatter_data[['left.endpoint']][i])&(plot_data[[percentile_name]] < binscatter_data[['right.endpoint']][i]),]
-    allocation[i,1] <- mean(c_interv[[outcome_name ]], na.rm = T)
-    allocation[i,2] <- allocation[i,1] - qnorm(0.025)*sqrt(var(c_interv[[outcome_name]], na.rm = T)/nrow(c_interv))
-    allocation[i,3] <- allocation[i,1] + qnorm(0.025)*sqrt(var(c_interv[[outcome_name]], na.rm = T)/nrow(c_interv))
-  }
-  
-  allocation[,4] <- binscatter$data.plot$`Group Full Sample`$data.dots$x
-  
-  binscatter_plot_df <- as_tibble(allocation)
-  
-  names(binscatter_plot_df) <- c('fit','ci.l','ci.r','x')
-  
-  plot <- ggplot(binscatter_plot_df, aes(x = x, y = fit)) +
-    geom_point(
-      color = plot_color
-    ) +
-    geom_line(
-      color = plot_color
-    ) +
-    geom_errorbar(
-      aes(ymin = ci.l, ymax = ci.r),
-      color = plot_color
-    ) +
-    plot_yrange +
-    ylab(
-      "Individual effects"
-    ) + 
-    xlab(
-      "Kaitz-p values"
-    ) +
-    geom_hline(
-      yintercept = 0, linetype = 5, color = "#000000", linewidth = 0.5
-    ) +
-    labs(
-      title = paste0("Effects of ", policy_title," on prescriptions", "\n by minimum wage bindingness (Kaitz-", percentile, " index)")
-    )
-  
-  plot <- plot + 
-    theme_classic() +
-    theme(
-      text = element_text(size = 12, family="serif"), 
+      text = element_text(size = 16, family="serif"),
       plot.title = element_text(hjust = 0.5)
     )
 

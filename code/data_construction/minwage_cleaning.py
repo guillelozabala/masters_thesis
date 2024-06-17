@@ -1,5 +1,3 @@
-import pandas as pd
-
 '''
 returns minwage_clean_states_ub.csv and minwage_clean_fed_ub.csv
 

@@ -1,5 +1,3 @@
-import pandas as pd
-
 '''
 returns unemployment_rate.csv, unemployment.csv, employment.csv, labor_force.csv, 
 employment_population_ratio.csv, labor_force_participation_rate.csv
