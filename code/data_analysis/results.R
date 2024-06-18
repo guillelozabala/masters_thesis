@@ -560,7 +560,6 @@ regressions <- function(location) {
 
   # Prescriptions
 
-
   data_location_prescriptions_pmq <- paste(
     location,
     "data/processed/prescription_monthly_pmq.csv",
